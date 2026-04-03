@@ -8,7 +8,7 @@ Config = {
     -- UI theming / bank branding
     -- `theme` is a key from Config.uiThemes and can be overridden per event call / per ped.
     -- Example:
-    -- TriggerEvent('Renewed-Banking:client:openBankUI', { atm = false, theme = 'FLEECA', institution = 'FLEECA Bank', location = 'Downtown' })
+    -- TriggerEvent('krgsh_banking:client:openBankUI', { atm = false, theme = 'FLEECA', institution = 'FLEECA Bank', location = 'Downtown' })
     uiDefaults = {
         bank = {
             theme = 'FLEECA',

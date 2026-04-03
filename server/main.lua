@@ -3,9 +3,10 @@ local cachedPlayers = {}
 
 CreateThread(function()
     Wait(500)
-    if not LoadResourceFile("Renewed-Banking", 'web/public/build/bundle.js') or GetCurrentResourceName() ~= "Renewed-Banking" then
+    local resourceName = GetCurrentResourceName()
+    if not LoadResourceFile(resourceName, 'web/public/build/bundle.js') then
         error(locale("ui_not_built"))
-        return StopResource("Renewed-Banking")
+        return StopResource(resourceName)
     end
     local accounts = MySQL.query.await('SELECT * FROM bank_accounts_new', {})
     if accounts then
@@ -129,7 +130,7 @@ local function getBankData(source)
     return bankData
 end
 
-lib.callback.register('renewed-banking:server:initalizeBanking', function(source)
+lib.callback.register('krgsh_banking:server:initalizeBanking', function(source)
     local bankData = getBankData(source)
     return bankData
 end)
@@ -227,7 +228,7 @@ local function getPlayerData(source, id)
     return Player
 end
 
-lib.callback.register('Renewed-Banking:server:deposit', function(source, data)
+lib.callback.register('krgsh_banking:server:deposit', function(source, data)
     local Player = GetPlayerObject(source)
     local amount = tonumber(data.amount)
     if not amount or amount < 1 then
@@ -248,7 +249,7 @@ lib.callback.register('Renewed-Banking:server:deposit', function(source, data)
         local bankData = getBankData(source)
         return bankData
     else
-        TriggerClientEvent('Renewed-Banking:client:sendNotification', source, locale("not_enough_money"))
+        TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("not_enough_money"))
         return false
     end
 end)
@@ -269,7 +270,7 @@ function RemoveAccountMoney(account, amount)
 end
 exports('removeAccountMoney', RemoveAccountMoney)
 
-lib.callback.register('Renewed-Banking:server:withdraw', function(source, data)
+lib.callback.register('krgsh_banking:server:withdraw', function(source, data)
     local Player = GetPlayerObject(source)
     local amount = tonumber(data.amount)
     if not amount or amount < 1 then
@@ -294,12 +295,12 @@ lib.callback.register('Renewed-Banking:server:withdraw', function(source, data)
         local bankData = getBankData(source)
         return bankData
     else
-        TriggerClientEvent('Renewed-Banking:client:sendNotification', source, locale("not_enough_money"))
+        TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("not_enough_money"))
         return false
     end
 end)
 
-lib.callback.register('Renewed-Banking:server:transfer', function(source, data)
+lib.callback.register('krgsh_banking:server:transfer', function(source, data)
     local Player = GetPlayerObject(source)
     local amount = tonumber(data.amount)
     if not amount or amount < 1 then
@@ -317,13 +318,13 @@ lib.callback.register('Renewed-Banking:server:transfer', function(source, data)
                 local transaction = handleTransaction(data.fromAccount, title, amount, data.comment, cachedAccounts[data.fromAccount].name, cachedAccounts[data.stateid].name, "withdraw")
                 handleTransaction(data.stateid, title, amount, data.comment, cachedAccounts[data.fromAccount].name, cachedAccounts[data.stateid].name, "deposit", transaction.trans_id)
             else
-                TriggerClientEvent('Renewed-Banking:client:sendNotification', source, locale("not_enough_money"))
+                TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("not_enough_money"))
                 return false
             end
         else
             local Player2 = getPlayerData(source, data.stateid)
             if not Player2 then
-                TriggerClientEvent('Renewed-Banking:client:sendNotification', source, locale("fail_transfer"))
+                TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("fail_transfer"))
                 return false
             end
             local canTransfer = RemoveAccountMoney(data.fromAccount, amount)
@@ -333,7 +334,7 @@ lib.callback.register('Renewed-Banking:server:transfer', function(source, data)
                 local transaction = handleTransaction(data.fromAccount, ("%s / %s"):format(cachedAccounts[data.fromAccount].name, data.fromAccount), amount, data.comment, cachedAccounts[data.fromAccount].name, plyName, "withdraw")
                 handleTransaction(data.stateid, ("%s / %s"):format(cachedAccounts[data.fromAccount].name, data.fromAccount), amount, data.comment, cachedAccounts[data.fromAccount].name, plyName, "deposit", transaction.trans_id)
             else
-                TriggerClientEvent('Renewed-Banking:client:sendNotification', source, locale("not_enough_money"))
+                TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("not_enough_money"))
                 return false
             end
         end
@@ -345,13 +346,13 @@ lib.callback.register('Renewed-Banking:server:transfer', function(source, data)
                 local transaction = handleTransaction(data.fromAccount, locale("personal_acc") .. data.fromAccount, amount, data.comment, name, cachedAccounts[data.stateid].name, "withdraw")
                 handleTransaction(data.stateid, locale("personal_acc") .. data.fromAccount, amount, data.comment, name, cachedAccounts[data.stateid].name, "deposit", transaction.trans_id)
             else
-                TriggerClientEvent('Renewed-Banking:client:sendNotification', source, locale("not_enough_money"))
+                TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("not_enough_money"))
                 return false
             end
         else
             local Player2 = getPlayerData(source, data.stateid)
             if not Player2 then
-                TriggerClientEvent('Renewed-Banking:client:sendNotification', source, locale("fail_transfer"))
+                TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("fail_transfer"))
                 return false
             end
 
@@ -361,7 +362,7 @@ lib.callback.register('Renewed-Banking:server:transfer', function(source, data)
                 local transaction = handleTransaction(data.fromAccount, locale("personal_acc") .. data.fromAccount, amount, data.comment, name, name2, "withdraw")
                 handleTransaction(data.stateid, locale("personal_acc") .. data.fromAccount, amount, data.comment, name, name2, "deposit", transaction.trans_id)
             else
-                TriggerClientEvent('Renewed-Banking:client:sendNotification', source, locale("not_enough_money"))
+                TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("not_enough_money"))
                 return false
             end
         end
@@ -370,7 +371,7 @@ lib.callback.register('Renewed-Banking:server:transfer', function(source, data)
     return bankData
 end)
 
-RegisterNetEvent('Renewed-Banking:server:createNewAccount', function(accountid)
+RegisterNetEvent('krgsh_banking:server:createNewAccount', function(accountid)
     local Player = GetPlayerObject(source)
     if cachedAccounts[accountid] then return Notify(source, {title = locale("bank_name"), description = locale("account_taken"), type = "error"}) end
     local cid = GetIdentifier(Player)
@@ -391,7 +392,7 @@ RegisterNetEvent('Renewed-Banking:server:createNewAccount', function(accountid)
     })
 end)
 
-RegisterNetEvent("Renewed-Banking:server:getPlayerAccounts", function()
+RegisterNetEvent("krgsh_banking:server:getPlayerAccounts", function()
     local Player = GetPlayerObject(source)
     local cid = GetIdentifier(Player)
     local accounts = cachedPlayers[cid].accounts
@@ -403,10 +404,10 @@ RegisterNetEvent("Renewed-Banking:server:getPlayerAccounts", function()
             end
         end
     end
-    TriggerClientEvent("Renewed-Banking:client:accountsMenu", source, data)
+    TriggerClientEvent("krgsh_banking:client:accountsMenu", source, data)
 end)
 
-RegisterNetEvent("Renewed-Banking:server:viewMemberManagement", function(data)
+RegisterNetEvent("krgsh_banking:server:viewMemberManagement", function(data)
     local Player = GetPlayerObject(source)
 
     local account = data.account
@@ -423,10 +424,10 @@ RegisterNetEvent("Renewed-Banking:server:viewMemberManagement", function(data)
         end
     end
 
-    TriggerClientEvent("Renewed-Banking:client:viewMemberManagement", source, retData)
+    TriggerClientEvent("krgsh_banking:client:viewMemberManagement", source, retData)
 end)
 
-RegisterNetEvent('Renewed-Banking:server:addAccountMember', function(account, member)
+RegisterNetEvent('krgsh_banking:server:addAccountMember', function(account, member)
     local Player = GetPlayerObject(source)
 
     if GetIdentifier(Player) ~= cachedAccounts[account].creator then print(locale("illegal_action", GetPlayerName(source))) return end
@@ -445,7 +446,7 @@ RegisterNetEvent('Renewed-Banking:server:addAccountMember', function(account, me
     MySQL.update('UPDATE bank_accounts_new SET auth = ? WHERE id = ?',{json.encode(auth), account})
 end)
 
-RegisterNetEvent('Renewed-Banking:server:removeAccountMember', function(data)
+RegisterNetEvent('krgsh_banking:server:removeAccountMember', function(data)
     local Player = GetPlayerObject(source)
     if GetIdentifier(Player) ~= cachedAccounts[data.account].creator then print(locale("illegal_action", GetPlayerName(source))) return end
     local Player2 = getPlayerData(source, data.cid)
@@ -474,7 +475,7 @@ RegisterNetEvent('Renewed-Banking:server:removeAccountMember', function(data)
     MySQL.update('UPDATE bank_accounts_new SET auth = ? WHERE id = ?',{json.encode(tmp), data.account})
 end)
 
-RegisterNetEvent('Renewed-Banking:server:deleteAccount', function(data)
+RegisterNetEvent('krgsh_banking:server:deleteAccount', function(data)
     local account = data.account
     local Player = GetPlayerObject(source)
     local cid = GetIdentifier(Player)
@@ -552,7 +553,7 @@ local function updateAccountName(account, newName, src)
     return true
 end
 
-RegisterNetEvent('Renewed-Banking:server:changeAccountName', function(account, newName)
+RegisterNetEvent('krgsh_banking:server:changeAccountName', function(account, newName)
     updateAccountName(account, newName, source)
 end) exports("changeAccountName", updateAccountName)-- Should only use this on very secure backends to avoid anyone using this as this is a server side ONLY export --
 

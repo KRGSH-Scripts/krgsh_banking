@@ -96,7 +96,7 @@ local function openBankUI(openData)
     end
     SendNUIMessage({action = 'setLoading', status = true})
     nuiHandler(true)
-    lib.callback('renewed-banking:server:initalizeBanking', false, function(accounts)
+    lib.callback('krgsh_banking:server:initalizeBanking', false, function(accounts)
         if not accounts then
             nuiHandler(false)
             lib.notify({title = locale('bank_name'), description = locale('loading_failed'), type = 'error'})
@@ -115,7 +115,7 @@ local function openBankUI(openData)
     end)
 end
 
-RegisterNetEvent('Renewed-Banking:client:openBankUI', function(data)
+RegisterNetEvent('krgsh_banking:client:openBankUI', function(data)
     data = type(data) == 'table' and data or { atm = data == true }
     local txt = data.atm and locale('open_atm') or locale('open_bank')
     TaskStartScenarioInPlace(PlayerPed, 'PROP_HUMAN_ATM', 0, true)
@@ -155,7 +155,7 @@ local atmTargetModels = {}
 CreateThread(function ()
     for k=1, #bankActions do
         RegisterNUICallback(bankActions[k], function(data, cb)
-            local newTransaction = lib.callback.await('Renewed-Banking:server:'..bankActions[k], false, data)
+            local newTransaction = lib.callback.await('krgsh_banking:server:'..bankActions[k], false, data)
             cb(newTransaction)
         end)
     end
@@ -170,7 +170,7 @@ CreateThread(function ()
 
             exports.ox_target:addModel(model, {{
                 name = 'renewed_banking_openui',
-                event = 'Renewed-Banking:client:openBankUI',
+                event = 'krgsh_banking:client:openBankUI',
                 icon = 'fas fa-money-check',
                 label = locale('view_bank'),
                 atm = true,
@@ -205,7 +205,7 @@ function CreatePeds()
             ped = nil,
             targetOptions = {{
                 name = 'renewed_banking_accountmng',
-                event = 'Renewed-Banking:client:accountManagmentMenu',
+                event = 'krgsh_banking:client:accountManagmentMenu',
                 icon = 'fas fa-money-check',
                 label = locale('manage_bank'),
                 atm = false,
@@ -214,7 +214,7 @@ function CreatePeds()
                 end
             },{
                 name = 'renewed_banking_openui',
-                event = 'Renewed-Banking:client:openBankUI',
+                event = 'krgsh_banking:client:openBankUI',
                 icon = 'fas fa-money-check',
                 label = locale('view_bank'),
                 atm = false,
@@ -291,7 +291,7 @@ AddEventHandler('onResourceStop', function(resource)
     DeletePeds()
 end)
 
-RegisterNetEvent('Renewed-Banking:client:sendNotification', function(msg)
+RegisterNetEvent('krgsh_banking:client:sendNotification', function(msg)
     if not msg then return end
     SendNUIMessage({
         action = 'notify',
@@ -299,6 +299,6 @@ RegisterNetEvent('Renewed-Banking:client:sendNotification', function(msg)
     })
 end)
 
-RegisterNetEvent('Renewed-Banking:client:viewAccountsMenu', function()
-    TriggerServerEvent('Renewed-Banking:server:getPlayerAccounts')
+RegisterNetEvent('krgsh_banking:client:viewAccountsMenu', function()
+    TriggerServerEvent('krgsh_banking:server:getPlayerAccounts')
 end)

@@ -6,7 +6,7 @@ elseif Framework == 'esx' then
     ESX = exports['es_extended']:getSharedObject()
     FullyLoaded = Framework == 'esx' and ESX.PlayerLoaded or false
 else
-	print('^6[^3Renewed-Banking^6]^0 Unsupported Framework detected!')
+	print('^6[^3krgsh_banking^6]^0 Unsupported Framework detected!')
 end
 
 AddStateBagChangeHandler('isLoggedIn', nil, function(_, _, value)

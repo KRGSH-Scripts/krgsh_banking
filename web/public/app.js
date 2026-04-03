@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    const RESOURCE_NAME = typeof GetParentResourceName === 'function' ? GetParentResourceName() : 'Renewed-Banking';
+    const RESOURCE_NAME = typeof GetParentResourceName === 'function' ? GetParentResourceName() : 'krgsh_banking';
 
     const DEFAULT_THEME = {
         key: 'DEFAULT',
