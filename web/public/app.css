@@ -33,15 +33,17 @@ body {
     height: 100%;
 }
 
+/* FiveM NUI: page chrome must be transparent so the game shows through */
+html {
+    background: transparent;
+}
+
 body {
     margin: 0;
     overflow: hidden;
     font-family: var(--rb-font-body);
     color: var(--rb-text);
-    background:
-        radial-gradient(circle at 0% 0%, rgba(11, 109, 142, 0.08), transparent 30%),
-        radial-gradient(circle at 100% 0%, rgba(27, 181, 143, 0.10), transparent 28%),
-        linear-gradient(160deg, var(--rb-bg), var(--rb-bg-2));
+    background: transparent;
 }
 
 #app {
@@ -70,8 +72,8 @@ body {
 .rb-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(222, 231, 240, 0.42);
-    backdrop-filter: blur(10px);
+    background: transparent;
+    backdrop-filter: none;
 }
 
 .rb-app {

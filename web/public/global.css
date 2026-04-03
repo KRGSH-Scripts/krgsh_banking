@@ -1,7 +1,7 @@
 :root {
     --clr-primary: #393A45;
     --clr-primary-light: #393A45;
-    --clr-primary-dark: transparant;
+    --clr-primary-dark: transparent;
 
     --clr-green: #34b8a8;
     --clr-orange: #e08c2b;
@@ -43,7 +43,7 @@ html {
 body {
     min-height: 100vh;
     font-family: var(--font-family);
-    background-color: var(--clr-primary-dark);
+    background-color: transparent;
     color: #fff;
 }
 
