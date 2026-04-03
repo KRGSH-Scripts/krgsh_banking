@@ -69,7 +69,6 @@ body {
     display: grid;
     place-items: center;
     padding: 2rem;
-    background: #000000;
     opacity: 0;
     pointer-events: none;
     transform: scale(0.99);
@@ -86,7 +85,7 @@ body {
     position: absolute;
     inset: 0;
     z-index: 0;
-    background: #000000;
+    background: transparent;
     backdrop-filter: none;
 }
 
@@ -101,7 +100,7 @@ body {
     padding: 1rem;
     border-radius: var(--rb-radius-2xl);
     border: 1px solid var(--rb-border);
-    background: linear-gradient(165deg, var(--rb-card) 0%, var(--rb-bg2) 55%, var(--rb-bg) 100%);
+    background: #000000;
     box-shadow: var(--rb-shadow);
     overflow: hidden;
 }
@@ -777,6 +776,7 @@ body {
     border-radius: var(--rb-radius-lg);
     border: 1px solid var(--rb-divider);
     background: var(--rb-fill-subtle);
+    color: #ffffff;
     cursor: pointer;
     transition: 0.16s ease;
 }
@@ -807,10 +807,12 @@ body {
 
 .rb-actionCard__body strong {
     font-size: 0.95rem;
+    color: #ffffff;
+    font-weight: 700;
 }
 
-.rb-actionCard__body span {
-    color: var(--rb-text-muted);
+.rb-actionCard__body > span {
+    color: rgba(255, 255, 255, 0.72);
     font-size: 0.8rem;
 }
 
