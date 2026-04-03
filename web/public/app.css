@@ -2,29 +2,41 @@
     --rb-font-display: "Manrope", sans-serif;
     --rb-font-body: "IBM Plex Sans", sans-serif;
 
-    --rb-bg: #edf3f8;
-    --rb-bg-2: #e2ebf3;
-    --rb-surface: rgba(255, 255, 255, 0.96);
-    --rb-surface-2: rgba(247, 250, 253, 0.98);
-    --rb-card: #ffffff;
-    --rb-border: rgba(17, 36, 56, 0.10);
-    --rb-text: #13283c;
-    --rb-text-muted: #5f7386;
-    --rb-text-soft: #7f93a6;
-    --rb-accent: #1bb58f;
-    --rb-accent-2: #0b6d8e;
-    --rb-accent-contrast: #f4fffd;
-    --rb-danger: #d1586a;
-    --rb-warning: #dc9a33;
-    --rb-glow: rgba(27, 181, 143, 0.16);
+    --rb-bg: #050505;
+    --rb-bg-2: #0c0c0c;
+    --rb-surface: rgba(255, 255, 255, 0.035);
+    --rb-surface-2: rgba(255, 255, 255, 0.02);
+    --rb-card: rgba(14, 14, 14, 0.94);
+    --rb-border: rgba(255, 255, 255, 0.09);
+    --rb-text: #e5e7eb;
+    --rb-text-muted: #9ca3af;
+    --rb-text-soft: #6b7280;
+    --rb-accent: #f472b6;
+    --rb-accent-2: #db2777;
+    --rb-accent-contrast: #0a0a0a;
+    --rb-danger: #fb7185;
+    --rb-warning: #fbbf24;
+    --rb-glow: rgba(244, 114, 182, 0.32);
+    --rb-flow-out: rgba(251, 113, 133, 0.28);
+
+    /* Buchungs-„positiv“ unabhaengig von Marken-Akzent (z. B. Maze rot) */
+    --rb-inflow: #34d399;
+    --rb-inflow-strong: #6ee7b7;
+    --rb-inflow-muted-bg: rgba(52, 211, 153, 0.12);
+    --rb-inflow-muted-border: rgba(52, 211, 153, 0.22);
+
+    --rb-divider: rgba(255, 255, 255, 0.085);
+    --rb-fill-subtle: rgba(255, 255, 255, 0.045);
+    --rb-fill-raised: rgba(255, 255, 255, 0.07);
+    --rb-chip-bg: rgba(255, 255, 255, 0.06);
 
     --rb-radius-2xl: 28px;
     --rb-radius-xl: 22px;
     --rb-radius-lg: 18px;
     --rb-radius-md: 14px;
     --rb-radius-sm: 12px;
-    --rb-shadow: 0 28px 70px rgba(11, 33, 53, 0.18);
-    --rb-shadow-soft: 0 14px 32px rgba(18, 41, 60, 0.10);
+    --rb-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
+    --rb-shadow-soft: 0 14px 32px rgba(0, 0, 0, 0.35);
 }
 
 html,
@@ -85,10 +97,8 @@ body {
     gap: 1rem;
     padding: 1rem;
     border-radius: var(--rb-radius-2xl);
-    border: 1px solid rgba(255, 255, 255, 0.65);
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 251, 253, 0.92)),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.15));
+    border: 1px solid var(--rb-border);
+    background: linear-gradient(165deg, var(--rb-card) 0%, var(--rb-bg2) 55%, var(--rb-bg) 100%);
     box-shadow: var(--rb-shadow);
     overflow: hidden;
 }
@@ -98,9 +108,9 @@ body {
     position: absolute;
     inset: 0;
     background:
-        linear-gradient(90deg, rgba(19, 40, 60, 0.025) 1px, transparent 1px) 0 0 / 48px 48px,
-        linear-gradient(rgba(19, 40, 60, 0.02) 1px, transparent 1px) 0 0 / 48px 48px;
-    opacity: 0.32;
+        linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px) 0 0 / 48px 48px,
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px) 0 0 / 48px 48px;
+    opacity: 0.45;
     pointer-events: none;
 }
 
@@ -113,8 +123,8 @@ body {
     gap: 1rem;
     padding: 0.9rem 1rem 1rem;
     border-radius: var(--rb-radius-xl);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(246, 249, 252, 0.88));
-    border: 1px solid rgba(17, 36, 56, 0.06);
+    background: linear-gradient(180deg, var(--rb-fill-raised), var(--rb-fill-subtle));
+    border: 1px solid var(--rb-divider);
 }
 
 .rb-brand {
@@ -131,9 +141,9 @@ body {
     padding: 0.55rem;
     display: grid;
     place-items: center;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(242, 247, 250, 0.92));
-    border: 1px solid rgba(17, 36, 56, 0.08);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    background: linear-gradient(180deg, var(--rb-fill-raised), var(--rb-fill-subtle));
+    border: 1px solid var(--rb-divider);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .rb-brand__logo {
@@ -157,8 +167,8 @@ body {
     font-size: 1rem;
     font-weight: 800;
     letter-spacing: 0.08em;
-    color: var(--rb-accent-2);
-    background: linear-gradient(135deg, rgba(27, 181, 143, 0.10), rgba(11, 109, 142, 0.10));
+    color: var(--rb-accent);
+    background: linear-gradient(135deg, var(--rb-glow), transparent);
 }
 
 .rb-brand__meta {
@@ -218,8 +228,8 @@ body {
     gap: 0.4rem;
     padding: 0.45rem 0.72rem;
     border-radius: 999px;
-    border: 1px solid rgba(17, 36, 56, 0.08);
-    background: rgba(244, 248, 251, 0.9);
+    border: 1px solid var(--rb-divider);
+    background: var(--rb-chip-bg);
     color: var(--rb-text-muted);
     font-size: 0.72rem;
     font-weight: 600;
@@ -232,19 +242,19 @@ body {
     height: 0.5rem;
     border-radius: 999px;
     background: var(--rb-accent);
-    box-shadow: 0 0 0 4px rgba(27, 181, 143, 0.12);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
 }
 
 .rb-status.is-success {
-    color: #10795b;
-    background: rgba(27, 181, 143, 0.10);
-    border-color: rgba(27, 181, 143, 0.18);
+    color: var(--rb-inflow-strong);
+    background: var(--rb-inflow-muted-bg);
+    border-color: var(--rb-inflow-muted-border);
 }
 
 .rb-status.is-danger {
     color: var(--rb-danger);
-    background: rgba(209, 88, 106, 0.10);
-    border-color: rgba(209, 88, 106, 0.18);
+    background: rgba(251, 113, 133, 0.10);
+    border-color: rgba(251, 113, 133, 0.22);
 }
 
 .rb-topbar__actions {
@@ -277,8 +287,8 @@ body {
 
 .rb-btn--ghost {
     color: var(--rb-text);
-    background: rgba(244, 248, 251, 0.95);
-    border-color: rgba(17, 36, 56, 0.08);
+    background: var(--rb-fill-subtle);
+    border-color: var(--rb-divider);
 }
 
 .rb-btn:hover,
@@ -323,7 +333,7 @@ body {
 .rb-toast,
 .rb-loading__card {
     border-radius: var(--rb-radius-xl);
-    border: 1px solid rgba(17, 36, 56, 0.08);
+    border: 1px solid var(--rb-divider);
     background: linear-gradient(180deg, var(--rb-surface), var(--rb-surface-2));
     box-shadow: var(--rb-shadow-soft);
 }
@@ -334,8 +344,8 @@ body {
 
 .rb-sidebarCard--intro {
     background:
-        radial-gradient(circle at top right, rgba(27, 181, 143, 0.10), transparent 40%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 252, 0.98));
+        radial-gradient(circle at top right, var(--rb-glow), transparent 42%),
+        linear-gradient(180deg, var(--rb-surface), var(--rb-surface-2));
 }
 
 .rb-sidebarCard__title,
@@ -365,8 +375,8 @@ body {
     gap: 0.6rem;
     padding: 0.78rem 0.88rem;
     border-radius: var(--rb-radius-md);
-    background: rgba(248, 250, 252, 0.96);
-    border: 1px solid rgba(17, 36, 56, 0.06);
+    background: var(--rb-fill-subtle);
+    border: 1px solid var(--rb-divider);
 }
 
 .rb-miniStat span {
@@ -418,7 +428,7 @@ body {
 .rb-accountList::-webkit-scrollbar-thumb,
 .rb-mainScroll::-webkit-scrollbar-thumb,
 .rb-modal__body::-webkit-scrollbar-thumb {
-    background: rgba(19, 40, 60, 0.16);
+    background: rgba(255, 255, 255, 0.12);
     border-radius: 999px;
 }
 
@@ -428,17 +438,16 @@ body {
     color: var(--rb-text);
     padding: 0.95rem;
     border-radius: var(--rb-radius-lg);
-    border: 1px solid rgba(17, 36, 56, 0.08);
-    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid var(--rb-divider);
+    background: var(--rb-fill-subtle);
     cursor: pointer;
     transition: 0.16s ease;
 }
 
 .rb-accountCard.is-active {
-    border-color: rgba(27, 181, 143, 0.24);
-    box-shadow: inset 0 0 0 1px rgba(27, 181, 143, 0.18);
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 249, 247, 0.98));
+    border-color: var(--rb-accent);
+    box-shadow: inset 0 0 0 1px var(--rb-border);
+    background: linear-gradient(180deg, var(--rb-fill-raised), var(--rb-fill-subtle));
 }
 
 .rb-accountCard__head,
@@ -509,7 +518,7 @@ body {
 .rb-workspaceHead {
     margin-bottom: 1rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(17, 36, 56, 0.08);
+    border-bottom: 1px solid var(--rb-divider);
 }
 
 .rb-workspaceHead__title {
@@ -523,8 +532,8 @@ body {
     gap: 0.45rem;
     padding: 0.32rem;
     border-radius: 999px;
-    background: rgba(243, 247, 250, 0.92);
-    border: 1px solid rgba(17, 36, 56, 0.08);
+    background: var(--rb-fill-subtle);
+    border: 1px solid var(--rb-divider);
 }
 
 .rb-tab {
@@ -543,8 +552,8 @@ body {
 
 .rb-tab.is-active {
     color: var(--rb-text);
-    background: #fff;
-    box-shadow: 0 10px 20px rgba(15, 38, 59, 0.08);
+    background: var(--rb-fill-raised);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
 .rb-stack,
@@ -557,17 +566,17 @@ body {
 .rb-hero {
     padding: 1.3rem;
     border-radius: var(--rb-radius-xl);
-    border: 1px solid rgba(17, 36, 56, 0.08);
+    border: 1px solid var(--rb-divider);
     background:
-        radial-gradient(circle at top right, rgba(27, 181, 143, 0.12), transparent 30%),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 249, 252, 0.98));
+        radial-gradient(circle at top right, var(--rb-glow), transparent 34%),
+        linear-gradient(135deg, var(--rb-fill-raised), var(--rb-fill-subtle));
     box-shadow: var(--rb-shadow-soft);
 }
 
 .rb-hero--atm {
     background:
-        radial-gradient(circle at top right, rgba(11, 109, 142, 0.10), transparent 36%),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 249, 252, 0.98));
+        radial-gradient(circle at top right, var(--rb-glow), transparent 38%),
+        linear-gradient(135deg, var(--rb-fill-raised), var(--rb-fill-subtle));
 }
 
 .rb-hero__main,
@@ -623,8 +632,8 @@ body {
 .rb-atmSummary {
     padding: 0.9rem 1rem;
     border-radius: var(--rb-radius-lg);
-    border: 1px solid rgba(17, 36, 56, 0.08);
-    background: rgba(255, 255, 255, 0.84);
+    border: 1px solid var(--rb-divider);
+    background: var(--rb-fill-subtle);
 }
 
 .rb-balanceMeta span,
@@ -653,8 +662,8 @@ body {
 .rb-flowWidget {
     padding: 1rem;
     border-radius: var(--rb-radius-lg);
-    border: 1px solid rgba(17, 36, 56, 0.08);
-    background: rgba(251, 253, 255, 0.95);
+    border: 1px solid var(--rb-divider);
+    background: var(--rb-fill-subtle);
 }
 
 .rb-flowWidget__ring {
@@ -669,7 +678,7 @@ body {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background: white;
+    background: var(--rb-bg2);
     display: grid;
     place-items: center;
     text-align: center;
@@ -763,8 +772,8 @@ body {
     gap: 0.85rem;
     padding: 1rem;
     border-radius: var(--rb-radius-lg);
-    border: 1px solid rgba(17, 36, 56, 0.08);
-    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid var(--rb-divider);
+    background: var(--rb-fill-subtle);
     cursor: pointer;
     transition: 0.16s ease;
 }
@@ -823,8 +832,8 @@ body {
     align-items: end;
     padding: 0.35rem;
     border-radius: 999px;
-    background: linear-gradient(180deg, rgba(243, 247, 250, 0.98), rgba(234, 240, 245, 0.98));
-    border: 1px solid rgba(17, 36, 56, 0.08);
+    background: linear-gradient(180deg, var(--rb-fill-subtle), var(--rb-bg2));
+    border: 1px solid var(--rb-divider);
 }
 
 .rb-chart__fill {
@@ -834,7 +843,7 @@ body {
 }
 
 .rb-chart__fill.is-in {
-    background: linear-gradient(180deg, var(--rb-accent), #57cab0);
+    background: linear-gradient(180deg, var(--rb-inflow), #059669);
 }
 
 .rb-chart__fill.is-out {
@@ -852,25 +861,25 @@ body {
     gap: 0.8rem;
     padding: 0.95rem;
     border-radius: var(--rb-radius-lg);
-    border: 1px solid rgba(17, 36, 56, 0.08);
-    background: rgba(250, 252, 254, 0.95);
+    border: 1px solid var(--rb-divider);
+    background: var(--rb-fill-subtle);
 }
 
 .rb-rowCard__icon {
-    background: rgba(239, 245, 249, 0.95);
-    border: 1px solid rgba(17, 36, 56, 0.08);
+    background: var(--rb-fill-raised);
+    border: 1px solid var(--rb-divider);
 }
 
 .rb-rowCard__icon.is-in {
-    color: #14745f;
-    background: rgba(27, 181, 143, 0.10);
-    border-color: rgba(27, 181, 143, 0.18);
+    color: var(--rb-inflow-strong);
+    background: var(--rb-inflow-muted-bg);
+    border-color: var(--rb-inflow-muted-border);
 }
 
 .rb-rowCard__icon.is-out {
     color: var(--rb-danger);
-    background: rgba(209, 88, 106, 0.10);
-    border-color: rgba(209, 88, 106, 0.18);
+    background: rgba(251, 113, 133, 0.10);
+    border-color: rgba(251, 113, 133, 0.22);
 }
 
 .rb-rowCard__title {
@@ -888,7 +897,7 @@ body {
 }
 
 .rb-rowCard__amount.is-in {
-    color: #14745f;
+    color: var(--rb-inflow-strong);
 }
 
 .rb-rowCard__amount.is-out {
@@ -908,8 +917,8 @@ body {
 .rb-textarea {
     width: 100%;
     border-radius: var(--rb-radius-sm);
-    border: 1px solid rgba(17, 36, 56, 0.10);
-    background: rgba(250, 252, 254, 0.98);
+    border: 1px solid var(--rb-divider);
+    background: var(--rb-fill-subtle);
     color: var(--rb-text);
     font-family: inherit;
     padding: 0.82rem 0.9rem;
@@ -922,7 +931,7 @@ body {
 .rb-search::placeholder,
 .rb-input::placeholder,
 .rb-textarea::placeholder {
-    color: #8ea0af;
+    color: var(--rb-text-soft);
 }
 
 .rb-txTable {
@@ -935,7 +944,7 @@ body {
 .rb-txTable td {
     padding: 0.95rem 0.8rem;
     text-align: left;
-    border-bottom: 1px solid rgba(17, 36, 56, 0.08);
+    border-bottom: 1px solid var(--rb-divider);
     vertical-align: top;
 }
 
@@ -965,15 +974,15 @@ body {
 }
 
 .rb-pill.is-in {
-    color: #10795b;
-    background: rgba(27, 181, 143, 0.10);
-    border: 1px solid rgba(27, 181, 143, 0.18);
+    color: var(--rb-inflow-strong);
+    background: var(--rb-inflow-muted-bg);
+    border: 1px solid var(--rb-inflow-muted-border);
 }
 
 .rb-pill.is-out {
     color: var(--rb-danger);
-    background: rgba(209, 88, 106, 0.10);
-    border: 1px solid rgba(209, 88, 106, 0.18);
+    background: rgba(251, 113, 133, 0.10);
+    border: 1px solid rgba(251, 113, 133, 0.22);
 }
 
 .rb-atmView {
@@ -995,8 +1004,8 @@ body {
 .rb-key {
     padding: 0.95rem;
     border-radius: var(--rb-radius-lg);
-    border: 1px solid rgba(17, 36, 56, 0.08);
-    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid var(--rb-divider);
+    background: var(--rb-fill-subtle);
     color: var(--rb-text);
     cursor: pointer;
 }
@@ -1046,7 +1055,7 @@ body {
 .rb-modal__backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(227, 235, 242, 0.56);
+    background: rgba(0, 0, 0, 0.62);
     backdrop-filter: blur(10px);
 }
 
@@ -1058,7 +1067,7 @@ body {
 
 .rb-modal__header {
     padding: 1rem 1.1rem;
-    border-bottom: 1px solid rgba(17, 36, 56, 0.08);
+    border-bottom: 1px solid var(--rb-divider);
     align-items: start;
 }
 
@@ -1071,8 +1080,8 @@ body {
     width: 38px;
     height: 38px;
     border-radius: 12px;
-    border: 1px solid rgba(17, 36, 56, 0.08);
-    background: rgba(248, 251, 253, 0.98);
+    border: 1px solid var(--rb-divider);
+    background: var(--rb-fill-subtle);
     color: var(--rb-text);
     cursor: pointer;
 }
@@ -1086,8 +1095,8 @@ body {
     margin-bottom: 1rem;
     padding: 0.95rem 1rem;
     border-radius: var(--rb-radius-lg);
-    background: rgba(247, 250, 253, 0.98);
-    border: 1px solid rgba(17, 36, 56, 0.08);
+    background: var(--rb-fill-subtle);
+    border: 1px solid var(--rb-divider);
 }
 
 .rb-modalAccount span {
@@ -1143,7 +1152,7 @@ body {
     z-index: 25;
     display: none;
     place-items: center;
-    background: rgba(227, 235, 242, 0.46);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(8px);
 }
 
@@ -1162,7 +1171,7 @@ body {
     height: 8px;
     border-radius: 999px;
     overflow: hidden;
-    background: rgba(17, 36, 56, 0.08);
+    background: var(--rb-divider);
 }
 
 .rb-loader::before {
@@ -1278,7 +1287,7 @@ body {
 
     .rb-txTable tr {
         padding: 0.4rem 0;
-        border-bottom: 1px solid rgba(17, 36, 56, 0.08);
+        border-bottom: 1px solid var(--rb-divider);
     }
 
     .rb-txTable td {

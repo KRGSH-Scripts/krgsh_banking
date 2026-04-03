@@ -11,21 +11,22 @@
         location: '',
         logo: '',
         colors: {
-            bg: '#edf3f8',
-            bg2: '#e2ebf3',
-            surface: 'rgba(255, 255, 255, 0.96)',
-            surface2: 'rgba(247, 250, 253, 0.98)',
-            card: '#ffffff',
-            border: 'rgba(17, 36, 56, 0.10)',
-            text: '#13283c',
-            textMuted: '#5f7386',
-            textSoft: '#7f93a6',
-            accent: '#1bb58f',
-            accent2: '#0b6d8e',
-            accentContrast: '#f4fffd',
-            glow: 'rgba(27, 181, 143, 0.16)',
-            danger: '#d1586a',
-            warning: '#dc9a33'
+            bg: '#050505',
+            bg2: '#0c0c0c',
+            surface: 'rgba(255, 255, 255, 0.035)',
+            surface2: 'rgba(255, 255, 255, 0.02)',
+            card: 'rgba(14, 14, 14, 0.94)',
+            border: 'rgba(255, 255, 255, 0.09)',
+            text: '#e5e7eb',
+            textMuted: '#9ca3af',
+            textSoft: '#6b7280',
+            accent: '#f472b6',
+            accent2: '#db2777',
+            accentContrast: '#ffffff',
+            glow: 'rgba(244, 114, 182, 0.32)',
+            danger: '#fb7185',
+            warning: '#fbbf24',
+            flowRingOut: 'rgba(251, 113, 133, 0.28)'
         }
     };
 
@@ -267,7 +268,8 @@
             '--rb-accent-contrast': resolved.colors.accentContrast,
             '--rb-glow': resolved.colors.glow,
             '--rb-danger': resolved.colors.danger,
-            '--rb-warning': resolved.colors.warning
+            '--rb-warning': resolved.colors.warning,
+            '--rb-flow-out': resolved.colors.flowRingOut || 'rgba(251, 113, 133, 0.28)'
         };
 
         Object.entries(map).forEach(([key, value]) => {
@@ -524,7 +526,7 @@
                         </div>
                         <div class="rb-hero__side">
                             <div class="rb-flowWidget">
-                                <div class="rb-flowWidget__ring" style="background: conic-gradient(var(--rb-accent) 0 ${inflowPct}%, rgba(209, 88, 106, 0.22) ${inflowPct}% 100%);">
+                                <div class="rb-flowWidget__ring" style="background: conic-gradient(var(--rb-accent) 0 ${inflowPct}%, var(--rb-flow-out) ${inflowPct}% 100%);">
                                     <div class="rb-flowWidget__inner">
                                         <strong>${escapeHtml(`${inflowPct}%`)}</strong>
                                         <span>${escapeHtml(FALLBACK_STRINGS.inflow)}</span>
@@ -1139,14 +1141,11 @@
                     location: 'Alta Street / Downtown',
                     logo: './img/banks/fleeca-logo.png',
                     colors: {
-                        bg: '#eff5f5',
-                        bg2: '#e3edee',
-                        accent: '#2ea765',
-                        accent2: '#0e718c',
-                        accentContrast: '#f3fff8',
-                        glow: 'rgba(46, 167, 101, 0.14)',
-                        textMuted: '#5c7167',
-                        textSoft: '#7f9288'
+                        accent: '#4ade80',
+                        accent2: '#16a34a',
+                        accentContrast: '#f0fdf4',
+                        glow: 'rgba(74, 222, 128, 0.30)',
+                        flowRingOut: 'rgba(251, 113, 133, 0.28)'
                     }
                 },
                 accounts: [

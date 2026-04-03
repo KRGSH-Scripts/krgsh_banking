@@ -11,61 +11,83 @@ Config = {
     -- TriggerEvent('krgsh_banking:client:openBankUI', { atm = false, theme = 'FLEECA', institution = 'FLEECA Bank', location = 'Downtown' })
     uiDefaults = {
         bank = {
-            theme = 'FLEECA',
-            institution = 'FLEECA Bank',
-            subtitle = 'Modern Homebanking',
+            theme = 'DEFAULT',
+            institution = 'Los Santos Banking',
+            subtitle = 'Online Banking',
             location = 'Los Santos',
             contextLabel = 'Bank'
         },
         atm = {
-            theme = 'FLEECA',
-            institution = 'Northern Pension Bank',
+            theme = 'DEFAULT',
+            institution = 'Los Santos Banking',
             subtitle = 'ATM Self-Service',
             location = 'Los Santos',
             contextLabel = 'Geldautomat'
         }
     },
-    -- Add more themes here (different logo PNGs + base colors per bank)
+    -- Themes: black background, gray foreground, highlight = accent (pink / green / red)
     uiThemes = {
+        DEFAULT = {
+            logo = '', -- optional: path under web/public e.g. 'img/banks/logo.png'
+            colors = {
+                bg = '#050505',
+                bg2 = '#0c0c0c',
+                surface = 'rgba(255, 255, 255, 0.035)',
+                surface2 = 'rgba(255, 255, 255, 0.02)',
+                card = 'rgba(14, 14, 14, 0.94)',
+                border = 'rgba(255, 255, 255, 0.09)',
+                text = '#e5e7eb',
+                textMuted = '#9ca3af',
+                textSoft = '#6b7280',
+                accent = '#f472b6',
+                accent2 = '#db2777',
+                accentContrast = '#ffffff',
+                glow = 'rgba(244, 114, 182, 0.32)',
+                danger = '#fb7185',
+                warning = '#fbbf24',
+                flowRingOut = 'rgba(251, 113, 133, 0.28)'
+            }
+        },
         FLEECA = {
             logo = 'img/banks/fleeca-logo.png', -- replace with your real PNG if desired
             colors = {
-                bg = '#08110b',
-                bg2 = '#101913',
-                surface = 'rgba(14, 24, 16, 0.88)',
-                surface2 = 'rgba(11, 18, 12, 0.94)',
-                card = 'rgba(18, 30, 21, 0.92)',
-                border = 'rgba(255, 255, 255, 0.08)',
-                text = '#eefaf0',
-                textMuted = '#b2cbb6',
-                textSoft = '#7f9684',
-                accent = '#86f06f',
-                accent2 = '#3bda77',
-                accentContrast = '#061008',
-                glow = 'rgba(134, 240, 111, 0.25)',
-                danger = '#ff6c7b',
-                warning = '#efc85b'
+                bg = '#050505',
+                bg2 = '#0c0c0c',
+                surface = 'rgba(255, 255, 255, 0.035)',
+                surface2 = 'rgba(255, 255, 255, 0.02)',
+                card = 'rgba(14, 14, 14, 0.94)',
+                border = 'rgba(255, 255, 255, 0.09)',
+                text = '#e5e7eb',
+                textMuted = '#9ca3af',
+                textSoft = '#6b7280',
+                accent = '#4ade80',
+                accent2 = '#16a34a',
+                accentContrast = '#f0fdf4',
+                glow = 'rgba(74, 222, 128, 0.30)',
+                danger = '#fb7185',
+                warning = '#fbbf24',
+                flowRingOut = 'rgba(251, 113, 133, 0.28)'
             }
         },
         MAZE_BANK = {
             logo = 'img/banks/maze-bank-logo.png', -- replace with your MAZE BANK PNG
             colors = {
-                -- luxury / corporate banking look (dark navy + gold accents)
-                bg = '#070a12',
-                bg2 = '#0f1724',
-                surface = 'rgba(13, 20, 34, 0.9)',
-                surface2 = 'rgba(8, 13, 24, 0.95)',
-                card = 'rgba(18, 26, 42, 0.93)',
-                border = 'rgba(214, 178, 104, 0.16)',
-                text = '#f6f3ea',
-                textMuted = '#cbc1ab',
-                textSoft = '#978a72',
-                accent = '#d8b56a',
-                accent2 = '#a9823e',
-                accentContrast = '#110d05',
-                glow = 'rgba(216, 181, 106, 0.23)',
-                danger = '#d96c70',
-                warning = '#e2bb72'
+                bg = '#050505',
+                bg2 = '#0c0c0c',
+                surface = 'rgba(255, 255, 255, 0.035)',
+                surface2 = 'rgba(255, 255, 255, 0.02)',
+                card = 'rgba(14, 14, 14, 0.94)',
+                border = 'rgba(255, 255, 255, 0.09)',
+                text = '#e5e7eb',
+                textMuted = '#9ca3af',
+                textSoft = '#6b7280',
+                accent = '#f87171',
+                accent2 = '#dc2626',
+                accentContrast = '#ffffff',
+                glow = 'rgba(248, 113, 113, 0.30)',
+                danger = '#fb7185',
+                warning = '#fbbf24',
+                flowRingOut = 'rgba(220, 38, 38, 0.32)'
             }
         }
     },
