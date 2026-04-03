@@ -69,6 +69,7 @@ body {
     display: grid;
     place-items: center;
     padding: 2rem;
+    background: #000000;
     opacity: 0;
     pointer-events: none;
     transform: scale(0.99);
@@ -84,12 +85,14 @@ body {
 .rb-backdrop {
     position: absolute;
     inset: 0;
-    background: transparent;
+    z-index: 0;
+    background: #000000;
     backdrop-filter: none;
 }
 
 .rb-app {
     position: relative;
+    z-index: 1;
     width: min(1460px, 100%);
     height: min(900px, 100%);
     display: grid;
