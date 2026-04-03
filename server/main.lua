@@ -4,7 +4,7 @@ local cachedPlayers = {}
 CreateThread(function()
     Wait(500)
     local resourceName = GetCurrentResourceName()
-    if not LoadResourceFile(resourceName, 'web/public/build/bundle.js') then
+    if not LoadResourceFile(resourceName, 'web/public/app.js') then
         error(locale("ui_not_built"))
         return StopResource(resourceName)
     end
