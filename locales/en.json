@@ -107,5 +107,15 @@
     "trans_not_found": "No transactions found",
     "export_data": "Export Transaction Data",
     "account_search": "Account Search...",
-    "account_not_found": "No accounts found"
+    "account_not_found": "No accounts found",
+    "create_account_ui": "New account",
+    "create_account_ui_hint": "The account number is assigned automatically.",
+    "create_account_name_label": "Account name",
+    "create_account_name_placeholder": "e.g. Business cash, Savings",
+    "create_account_submit": "Create account",
+    "create_account_success": "Account created successfully.",
+    "create_account_invalid_name": "Invalid account name (1–100 characters).",
+    "create_account_failed": "Could not create account. Try again.",
+    "create_account_rate_limit": "Please wait a moment before creating another account.",
+    "change_account_display_name": "Display name"
 }
