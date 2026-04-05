@@ -12,7 +12,7 @@ Die `config.lua` wird als `shared_script` geladen und ist sowohl auf Client als 
 lib.locale()  -- ox_lib Locale-System initialisieren (muss am Anfang stehen)
 
 Config = {
-    renewedMultiJob = false,
+    krgshMultiJob = false,
     progressbar     = 'circle',
     currency        = 'USD',
     ...
@@ -21,7 +21,7 @@ Config = {
 
 | Option | Typ | Standard | Beschreibung |
 |---|---|---|---|
-| `renewedMultiJob` | boolean | `false` | **Nur QBCore.** Aktiviert Multi-Job-Support via `qb-phone`. Alle Jobs des Spielers werden für Bankzugriff geprüft. |
+| `krgshMultiJob` | boolean | `false` | **Nur QBCore.** Aktiviert Multi-Job-Support via `qb-phone`. Alle Jobs des Spielers werden für Bankzugriff geprüft. |
 | `progressbar` | string | `'circle'` | `'circle'` → `lib.progressCircle`, alles andere → `lib.progressBar` |
 | `currency` | string | `'USD'` | ISO 4217 Währungscode. Wird an die NUI übergeben und für `Intl.NumberFormat` genutzt. Beispiele: `'EUR'`, `'GBP'`, `'BRL'` |
 

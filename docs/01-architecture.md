@@ -1,8 +1,8 @@
-# Systemarchitektur – Renewed-Banking / krgsh_banking
+# Systemarchitektur – krgsh_banking
 
 ## Überblick
 
-`krgsh_banking` ist eine FiveM-Resource (Lua 5.4) für ein vollständiges Banking-System, das auf **QBCore**, **QBX** und **ESX** läuft. Die Resource besteht aus einem Lua-Backend (Client + Server), einer Browser-basierten NUI-Oberfläche (Vanilla-JS, kein Framework-Build erforderlich) und einer MySQL-Datenbank via `oxmysql`.
+`krgsh_banking` ist eine FiveM-Resource (Lua 5.4) für ein vollständiges Banking-System, das auf **QBCore**, **QBX** und **ESX** läuft. Die Resource besteht aus einem Lua-Backend (Client + Server), einer Browser-basierten NUI (React/Vite; Source unter `web/src`, ausgelieferter Build unter `web/public/`) und einer MySQL-Datenbank via `oxmysql`. Upstream: [Renewed-Banking](https://github.com/Renewed-Scripts/Renewed-Banking).
 
 ---
 
@@ -10,8 +10,8 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  NUI / Browser (web/public/app.js + app.css)                │
-│  Vanilla JS · Einzel-Datei · Kein Build-Schritt nötig       │
+│  NUI / Browser (web/public/index.html + assets/*)           │
+│  React / Vite · Build erforderlich (siehe build.sh)          │
 └────────────────────────┬────────────────────────────────────┘
                          │  NUI-Messages (window.onmessage)
                          │  NUI-Callbacks (fetch POST)
@@ -50,14 +50,11 @@ krgsh_banking/
 ├── server/
 │   ├── framework.lua       Framework-Adapter + Kompatibilitäts-Exports
 │   └── main.lua            Kern-Business-Logik, Cache, API, Exports
-├── web/public/
-│   ├── index.html          HTML-Einstiegspunkt für NUI
-│   ├── global.css          CSS-Reset und globale Utility-Klassen
-│   ├── app.css             Komponenten-Styles (BEM-ähnlich, rb-* Präfix)
-│   ├── app.js              Komplette UI-Logik (Vanilla JS, eine Datei)
-│   └── img/                Bank-Logos und Assets
+├── web/
+│   ├── src/                React/TS-Quellen (Vite)
+│   └── public/             Ausgelieferte NUI (index.html, assets/* nach Build)
 ├── locales/                22 Sprachdateien (JSON)
-└── Renewed-Banking.sql     SQL-Schema (Tabellendefinitionen)
+└── krgsh_banking.sql       SQL-Schema (Tabellendefinitionen)
 ```
 
 ---
@@ -98,9 +95,9 @@ Die Resource stellt folgende Shims bereit, damit externe Ressourcen ohne Anpassu
 
 ---
 
-## Ressource-Name (kritisch)
+## Ressource-Name
 
-Der Ressourcen-Name **muss `Renewed-Banking`** lauten. Die UI prüft beim Start per `GetParentResourceName()` gegen diesen Namen. Eine Umbenennung ohne Anpassung des Bundle-Codes führt zum Absturz der Resource.
+Der **Ordnername** der Resource muss zu `ensure <name>` in der `server.cfg` passen. Die NUI verwendet `GetParentResourceName()` für `fetch('https://<name>/…')`. Der Server prüft beim Start, ob `web/public/index.html` vorhanden ist.
 
 ---
 

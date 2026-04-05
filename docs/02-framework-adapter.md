@@ -55,7 +55,7 @@ Bei `Unknown` wird `StopResource(GetCurrentResourceName())` aufgerufen.
 
 | Funktion | Beschreibung |
 |---|---|
-| `GetJobs(Player)` | Gibt `{ name, grade }` zurück. Bei MultiJob-Aktivierung (`Config.renewedMultiJob`) eine Array-Table aller Jobs |
+| `GetJobs(Player)` | Gibt `{ name, grade }` zurück. Bei MultiJob-Aktivierung (`Config.krgshMultiJob`) eine Array-Table aller Jobs |
 | `GetGang(Player)` | Gibt `gang.name` zurück (ESX: immer `false`) |
 | `IsJobAuth(job, grade)` | Prüft, ob der Grade `bankAuth = true` hat (QB/QBX) oder `boss`-Grade (ESX) |
 | `IsGangAuth(Player, gang)` | Prüft Gang-Bankberechtigung (QB/QBX only) |
@@ -149,7 +149,7 @@ RegisterServerEvent('esx_society:withdrawMoney', RemoveAccountMoney)
 
 ## MultiJob-Unterstützung (QBCore only)
 
-Wenn `Config.renewedMultiJob = true`, ruft `GetJobs()` statt dem Haupt-Job alle Jobs über `exports['qb-phone']:getJobs(citizenid)` ab. Jeder Job-Eintrag wird normiert auf `{ name, grade }`.
+Wenn `Config.krgshMultiJob = true`, ruft `GetJobs()` statt dem Haupt-Job alle Jobs über `exports['qb-phone']:getJobs(citizenid)` ab. Jeder Job-Eintrag wird normiert auf `{ name, grade }`.
 
 ---
 

@@ -2,7 +2,7 @@ fx_version 'cerulean'
 game 'gta5'
 version '2.1.4'
 
-description 'Renewed Banking'
+description 'krgsh_banking — FiveM banking (QBCore / QBX / ESX)'
 Author "uShifty#1733"
 version '2.1.4'
 

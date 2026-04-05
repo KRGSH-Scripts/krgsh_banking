@@ -159,7 +159,7 @@ end
 
 function GetJobs(Player)
     if Framework == 'qb' or Framework == 'qbx' then
-        if Config.renewedMultiJob then
+        if Config.krgshMultiJob then
             local jobs = exports['qb-phone']:getJobs(Player.PlayerData.citizenid)
             local temp = {}
             for k,v in pairs(jobs) do

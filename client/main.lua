@@ -247,7 +247,7 @@ CreateThread(function ()
             addedModels[tostring(model)] = true
 
             exports.ox_target:addModel(model, {{
-                name = 'renewed_banking_openui',
+                name = 'krgsh_banking_openui',
                 event = 'krgsh_banking:client:openBankUI',
                 icon = 'fas fa-money-check',
                 label = locale('view_bank'),
@@ -282,7 +282,7 @@ function CreatePeds()
             heading = coords.w,
             ped = nil,
             targetOptions = {{
-                name = 'renewed_banking_accountmng',
+                name = 'krgsh_banking_accountmng',
                 event = 'krgsh_banking:client:accountManagmentMenu',
                 icon = 'fas fa-money-check',
                 label = locale('manage_bank'),
@@ -291,7 +291,7 @@ function CreatePeds()
                     return distance < 4.5 and pedConfig.createAccounts
                 end
             },{
-                name = 'renewed_banking_openui',
+                name = 'krgsh_banking_openui',
                 event = 'krgsh_banking:client:openBankUI',
                 icon = 'fas fa-money-check',
                 label = locale('view_bank'),
@@ -325,7 +325,7 @@ function CreatePeds()
         end
 
         function pedPoint:onExit()
-            exports.ox_target:removeLocalEntity(self.ped, self.advanced and 'renewed_banking_accountmng' or 'renewed_banking_openui')
+            exports.ox_target:removeLocalEntity(self.ped, self.advanced and 'krgsh_banking_accountmng' or 'krgsh_banking_openui')
             if DoesEntityExist(self.ped) then
                 DeletePed(self.ped)
             end
@@ -363,9 +363,9 @@ end
 AddEventHandler('onResourceStop', function(resource)
     if resource ~= GetCurrentResourceName() then return end
     if #atmTargetModels > 0 then
-        exports.ox_target:removeModel(atmTargetModels, {'renewed_banking_openui'})
+        exports.ox_target:removeModel(atmTargetModels, {'krgsh_banking_openui'})
     else
-        exports.ox_target:removeModel(Config.atms, {'renewed_banking_openui'})
+        exports.ox_target:removeModel(Config.atms, {'krgsh_banking_openui'})
     end
     DeletePeds()
 end)

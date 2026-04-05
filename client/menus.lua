@@ -1,6 +1,6 @@
 RegisterNetEvent("krgsh_banking:client:accountManagmentMenu", function()
     lib.registerContext({
-        id = 'renewed_banking_account_management',
+        id = 'krgsh_banking_account_management',
         title = locale("bank_name"),
         position = 'top-right',
         options = {
@@ -18,7 +18,7 @@ RegisterNetEvent("krgsh_banking:client:accountManagmentMenu", function()
             }
         }
     })
-    lib.showContext("renewed_banking_account_management")
+    lib.showContext("krgsh_banking_account_management")
 end)
 
 RegisterNetEvent("krgsh_banking:client:createAccountMenu", function()
@@ -56,21 +56,21 @@ RegisterNetEvent("krgsh_banking:client:accountsMenu", function(data)
         }
     end
     lib.registerContext({
-        id = 'renewed_banking_account_list',
+        id = 'krgsh_banking_account_list',
         title = locale("bank_name"),
         position = 'top-right',
-        menu = "renewed_banking_account_management",
+        menu = "krgsh_banking_account_management",
         options = menuOpts
     })
-    lib.showContext("renewed_banking_account_list")
+    lib.showContext("krgsh_banking_account_list")
 end)
 
 RegisterNetEvent("krgsh_banking:client:accountsMenuView", function(data)
     lib.registerContext({
-        id = 'renewed_banking_account_view',
+        id = 'krgsh_banking_account_view',
         title = locale("bank_name"),
         position = 'top-right',
-        menu = "renewed_banking_account_list",
+        menu = "krgsh_banking_account_list",
         options = {
             {
                 title = locale("manage_members"),
@@ -102,7 +102,7 @@ RegisterNetEvent("krgsh_banking:client:accountsMenuView", function(data)
             }
         }
     })
-    lib.showContext("renewed_banking_account_view")
+    lib.showContext("krgsh_banking_account_view")
 end)
 
 RegisterNetEvent("krgsh_banking:client:viewMemberManagement", function(data)
@@ -128,21 +128,21 @@ RegisterNetEvent("krgsh_banking:client:viewMemberManagement", function(data)
         }
     }
     lib.registerContext({
-        id = 'renewed_banking_member_manage',
+        id = 'krgsh_banking_member_manage',
         title = locale("bank_name"),
         position = 'top-right',
-        menu = 'renewed_banking_account_view',
+        menu = 'krgsh_banking_account_view',
         options = menuOpts
     })
-    lib.showContext("renewed_banking_member_manage")
+    lib.showContext("krgsh_banking_member_manage")
 end)
 
 RegisterNetEvent('krgsh_banking:client:removeMemberConfirmation', function(data)
     lib.registerContext({
-        id = 'renewed_banking_member_remove',
+        id = 'krgsh_banking_member_remove',
         title = locale('bank_name'),
         position = 'top-right',
-        menu = 'renewed_banking_account_view',
+        menu = 'krgsh_banking_account_view',
         options = {
             {
                 title = locale('remove_member'),
@@ -152,7 +152,7 @@ RegisterNetEvent('krgsh_banking:client:removeMemberConfirmation', function(data)
             }
         }
     })
-    lib.showContext('renewed_banking_member_remove')
+    lib.showContext('krgsh_banking_member_remove')
 end)
 
 RegisterNetEvent('krgsh_banking:client:addAccountMember', function(data)
