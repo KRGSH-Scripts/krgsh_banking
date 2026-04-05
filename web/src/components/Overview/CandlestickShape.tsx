@@ -1,33 +1,37 @@
 import type { DailyOhlcPoint } from '../../lib/formatters';
 
-type YAxisLike = {
-  scale: (v: number) => number;
-};
-
 export type CandlestickShapeProps = {
   x?: number;
   y?: number;
   width?: number;
   height?: number;
   payload?: DailyOhlcPoint;
-  yAxis?: YAxisLike;
 };
 
 /**
- * Recharts <Bar shape={...} /> — uses yAxis.scale for OHLC → pixels.
- * dataKey should return [low, high] so layout matches the wick span.
+ * Recharts <Bar shape={...} /> — `yAxis` is stripped by filterProps before it
+ * reaches custom shapes, so we map OHLC using the bar's pixel span (low→high).
+ * Bar dataKey must return [low, high] for horizontal layout.
  */
 export function CandlestickShape(props: unknown) {
   const raw = props as CandlestickShapeProps;
-  const { x = 0, width = 0, payload, yAxis } = raw;
-  if (!payload || !yAxis?.scale) return <g />;
+  const { x = 0, y = 0, width = 0, height = 0, payload } = raw;
+  if (!payload) return <g />;
 
   const { open, high, low, close } = payload;
+  const span = high - low;
+  /** Pixel Y for balance value `v` along the bar (Recharts: y + height spans low→high). */
+  const yFor = (v: number) => {
+    if (!Number.isFinite(v)) return y + height / 2;
+    if (Math.abs(span) < 1e-9) return y + height / 2;
+    return y + (height * (high - v)) / span;
+  };
+
   const cx = x + width / 2;
-  const yHigh = yAxis.scale(high);
-  const yLow = yAxis.scale(low);
-  const yOpen = yAxis.scale(open);
-  const yClose = yAxis.scale(close);
+  const yHigh = yFor(high);
+  const yLow = yFor(low);
+  const yOpen = yFor(open);
+  const yClose = yFor(close);
 
   const bodyTop = Math.min(yOpen, yClose);
   const bodyH = Math.max(Math.abs(yClose - yOpen), 1);
