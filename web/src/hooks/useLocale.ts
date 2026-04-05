@@ -82,6 +82,7 @@ const FALLBACK: Record<string, string> = {
   create_account_invalid_name: 'Ungueltiger Name (1–100 Zeichen).',
   create_account_failed: 'Konto konnte nicht angelegt werden.',
   create_account_rate_limit: 'Bitte kurz warten, bevor du ein weiteres Konto anlegst.',
+  pi_new_standing_btn: 'Neuer Dauerauftrag',
   change_account_display_name: 'Anzeigename',
   transaction_processing: 'Transaktion wird ausgefuehrt…',
   journal_scope_hint: 'Nur Buchungen dieses Kontos.',

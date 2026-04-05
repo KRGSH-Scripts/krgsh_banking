@@ -20,7 +20,35 @@ local function deepCopyMeta(meta)
 end
 
 local function metaJson(meta)
-    return json.encode(type(meta) == 'table' and meta or {})
+    local ok, enc = pcall(json.encode, type(meta) == 'table' and meta or {})
+    return ok and enc or '{}'
+end
+
+--- Strip values ox_lib/msgpack cannot serialize (e.g. cjson.null userdata).
+local function scrubForCallback(v, depth)
+    depth = depth or 0
+    if depth > 4 then return nil end
+    local t = type(v)
+    if t == 'string' or t == 'number' or t == 'boolean' then return v end
+    if t ~= 'table' then return nil end
+    local o = {}
+    for k, val in pairs(v) do
+        local ks = type(k) == 'string' and k or tostring(k)
+        local vt = type(val)
+        if vt == 'string' or vt == 'number' or vt == 'boolean' then
+            o[ks] = val
+        elseif vt == 'table' then
+            local inner = scrubForCallback(val, depth + 1)
+            if inner and next(inner) then o[ks] = inner end
+        end
+    end
+    return o
+end
+
+local function bankIdString(v)
+    if v == nil then return nil end
+    if type(v) == 'string' then return v end
+    return tostring(v)
 end
 
 --- Player may debit / manage schedules on this banking id (personal, job, gang, shared).
@@ -51,6 +79,7 @@ local function canManageDebtorAccount(source, debtorAccountId)
 end
 
 local function rowFromDb(r)
+    if type(r) ~= 'table' or not r.id then return nil end
     r.amount = tonumber(r.amount) or 0
     r.interval_seconds = tonumber(r.interval_seconds) or 0
     r.next_run_at = tonumber(r.next_run_at) or 0
@@ -77,22 +106,28 @@ local function persistRow(r)
 end
 
 local function insertRow(r)
-    MySQL.query.await(
-        'INSERT INTO `bank_payment_instructions` (`id`,`kind`,`debtor_account_id`,`creditor_target`,`amount`,`interval_seconds`,`next_run_at`,`status`,`metadata`,`created_at`,`updated_at`) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-        {
-            r.id,
-            r.kind,
-            r.debtor_account_id,
-            r.creditor_target,
-            math.floor(r.amount),
-            math.floor(r.interval_seconds),
-            math.floor(r.next_run_at),
-            r.status,
-            metaJson(r.metadata),
-            r.created_at,
-            r.updated_at,
-        }
-    )
+    local params = {
+        r.id,
+        r.kind,
+        r.debtor_account_id,
+        r.creditor_target,
+        math.floor(r.amount),
+        math.floor(r.interval_seconds),
+        math.floor(r.next_run_at),
+        r.status,
+        metaJson(r.metadata),
+        r.created_at,
+        r.updated_at,
+    }
+    local ok, err = pcall(function()
+        MySQL.query.await(
+            'INSERT INTO `bank_payment_instructions` (`id`,`kind`,`debtor_account_id`,`creditor_target`,`amount`,`interval_seconds`,`next_run_at`,`status`,`metadata`,`created_at`,`updated_at`) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+            params
+        )
+    end)
+    if ok then return true end
+    print(('[krgsh_banking] bank_payment_instructions INSERT failed: %s'):format(tostring(err)))
+    return false
 end
 
 local function cacheRow(r)
@@ -100,11 +135,18 @@ local function cacheRow(r)
 end
 
 local function loadAllInstructions()
-    local rows = MySQL.query.await('SELECT * FROM `bank_payment_instructions`', {})
     instructionsById = {}
-    if not rows then return end
+    local ok, rows = pcall(function()
+        return MySQL.query.await('SELECT * FROM `bank_payment_instructions`', {})
+    end)
+    if not ok then
+        print(('[krgsh_banking] bank_payment_instructions SELECT failed: %s'):format(tostring(rows)))
+        return
+    end
+    if type(rows) ~= 'table' then return end
     for _, r in pairs(rows) do
-        cacheRow(rowFromDb(r))
+        local row = rowFromDb(r)
+        if row then cacheRow(row) end
     end
 end
 
@@ -230,7 +272,10 @@ CreateThread(function()
 end)
 
 local function newInstructionId()
-    return D.genTransactionID()
+    if type(D.genTransactionID) == 'function' then
+        return D.genTransactionID()
+    end
+    return ('pi-%x-%x'):format(os.time(), math.random(0x100000, 0xFFFFFFF))
 end
 
 local function canResourceCreateSubscription()
@@ -266,28 +311,39 @@ local function listForSource(source)
                 interval_seconds = inst.interval_seconds,
                 next_run_at = inst.next_run_at,
                 status = inst.status,
-                metadata = deepCopyMeta(inst.metadata),
+                metadata = scrubForCallback(deepCopyMeta(inst.metadata)) or {},
                 created_at = inst.created_at,
                 updated_at = inst.updated_at,
             }
             out[#out + 1] = ser
         end
     end
-    table.sort(out, function(a, b) return a.created_at > b.created_at end)
+    table.sort(out, function(a, b)
+        return (tonumber(a.created_at) or 0) > (tonumber(b.created_at) or 0)
+    end)
     return out
 end
 
 lib.callback.register('krgsh_banking:server:listPaymentInstructions', function(source, data)
-    if type(data) == 'table' and data.atm then return {} end
-    return listForSource(source)
+    data = type(data) == 'table' and data or {}
+    if data.atm then return {} end
+    local ok, result = pcall(listForSource, source)
+    if not ok then
+        print(('[krgsh_banking] listPaymentInstructions error: %s'):format(tostring(result)))
+        return {}
+    end
+    return result
 end)
 
 lib.callback.register('krgsh_banking:server:createStandingOrder', function(source, data)
-    if type(data) == 'table' and data.atm then return { success = false, error = 'atm' } end
-    local debtor = data and data.debtorAccountId
-    local creditor = data and data.creditorTarget
-    local amount = math.floor(tonumber(data and data.amount) or 0)
-    local interval = math.floor(tonumber(data and data.intervalSeconds) or 0)
+    data = type(data) == 'table' and data or {}
+    if data.atm then return { success = false, error = 'atm' } end
+    local debtor = bankIdString(data.debtorAccountId)
+    local creditor = bankIdString(data.creditorTarget)
+    if debtor then debtor = debtor:gsub('^%s+', ''):gsub('%s+$', '') end
+    if creditor then creditor = creditor:gsub('^%s+', ''):gsub('%s+$', '') end
+    local amount = math.floor(tonumber(data.amount) or 0)
+    local interval = math.floor(tonumber(data.intervalSeconds) or 0)
     if not validateAccounts(debtor, creditor) or amount < 1 or interval < PI_MIN_INTERVAL then
         return { success = false, error = 'invalid' }
     end
@@ -309,7 +365,9 @@ lib.callback.register('krgsh_banking:server:createStandingOrder', function(sourc
         created_at = t,
         updated_at = t,
     }
-    insertRow(row)
+    if not insertRow(row) then
+        return { success = false, error = 'db' }
+    end
     cacheRow(row)
     return { success = true, id = id }
 end)
@@ -400,7 +458,7 @@ local function create_direct_debit_request(debtorId, creditorId, amount, interva
         created_at = t,
         updated_at = t,
     }
-    insertRow(row)
+    if not insertRow(row) then return false, 'db' end
     cacheRow(row)
     notifyDebtorsPending(row)
     return id
@@ -433,7 +491,7 @@ local function create_installment(debtorId, creditorId, installmentAmount, total
         created_at = t,
         updated_at = t,
     }
-    insertRow(row)
+    if not insertRow(row) then return false, 'db' end
     cacheRow(row)
     notifyDebtorsPending(row)
     return id
@@ -463,7 +521,7 @@ local function create_subscription(debtorId, creditorId, amount, intervalSeconds
         created_at = t,
         updated_at = t,
     }
-    insertRow(row)
+    if not insertRow(row) then return false, 'db' end
     cacheRow(row)
     return id
 end
@@ -491,7 +549,7 @@ local function create_standing_order_export(debtorId, creditorId, amount, interv
         created_at = t,
         updated_at = t,
     }
-    insertRow(row)
+    if not insertRow(row) then return false, 'db' end
     cacheRow(row)
     return id
 end

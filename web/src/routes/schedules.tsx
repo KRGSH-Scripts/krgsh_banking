@@ -12,9 +12,10 @@ import {
   Select,
   TextInput,
   NumberInput,
-  Divider,
+  Modal,
   SimpleGrid,
 } from '@mantine/core';
+import { IconPlus } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { useAccounts } from '../hooks/useAccounts';
@@ -91,6 +92,7 @@ function SchedulesPage() {
   const [amount, setAmount] = useState<number | string>('');
   const [intervalSec, setIntervalSec] = useState<string | null>('86400');
   const [label, setLabel] = useState('');
+  const [newOrderOpen, setNewOrderOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!isNuiRuntime()) {
@@ -110,6 +112,10 @@ function SchedulesPage() {
   useEffect(() => {
     if (!debtorId && accounts[0]) setDebtorId(accounts[0].id);
   }, [accounts, debtorId]);
+
+  useEffect(() => {
+    if (newOrderOpen && !debtorId && accounts[0]) setDebtorId(accounts[0].id);
+  }, [newOrderOpen, accounts, debtorId]);
 
   const intervalOptions = INTERVAL_PRESETS.map((p) => ({
     value: p.value,
@@ -131,9 +137,19 @@ function SchedulesPage() {
       setCreditor('');
       setAmount('');
       setLabel('');
+      setNewOrderOpen(false);
       void refresh();
     } else {
-      useBankingStore.getState().showToast(t('pi_created_fail', 'Konnte nicht anlegen.'));
+      const code = res && typeof res === 'object' ? res.error : undefined;
+      const detail =
+        code === 'db'
+          ? t('pi_error_db', 'Datenbankfehler — Server-Log pruefen.')
+          : code === 'auth'
+            ? t('pi_error_auth', 'Keine Berechtigung fuer dieses Konto.')
+            : code === 'invalid'
+              ? t('pi_error_invalid', 'Ungueltige Eingaben (Betrag, Intervall >= 60s, Ziel).')
+              : t('pi_created_fail', 'Konnte nicht anlegen.');
+      useBankingStore.getState().showToast(detail);
     }
   }
 
@@ -216,66 +232,101 @@ function SchedulesPage() {
           WebkitOverflowScrolling: 'touch',
         }}
       >
-      <Text fw={700} size="lg" mb={rem(8)} style={{ fontFamily: 'var(--mantine-font-family-headings)' }}>
-        {t('pi_title', 'Dauerauftraege & Lastschriften')}
-      </Text>
-      <Text size="sm" c="dimmed" mb={rem(20)}>
-        {t('pi_subtitle', 'Dauerauftraege anlegen, Mandate bestaetigen, Abos verwalten.')}
-      </Text>
+      <Group justify="space-between" align="flex-start" wrap="wrap" gap={rem(12)} mb={rem(16)}>
+        <Box style={{ flex: '1 1 200px', minWidth: 0 }}>
+          <Text fw={700} size="lg" mb={rem(6)} style={{ fontFamily: 'var(--mantine-font-family-headings)' }}>
+            {t('pi_title', 'Dauerauftraege & Lastschriften')}
+          </Text>
+          <Text size="sm" c="dimmed">
+            {t('pi_subtitle', 'Dauerauftraege anlegen, Mandate bestaetigen, Abos verwalten.')}
+          </Text>
+        </Box>
+        <Button
+          leftSection={<IconPlus size={18} stroke={2} />}
+          onClick={() => setNewOrderOpen(true)}
+          style={{
+            background: 'var(--rb-accent)',
+            color: 'var(--rb-accent-contrast)',
+            flexShrink: 0,
+          }}
+        >
+          {t('pi_new_standing_btn', 'Neuer Dauerauftrag')}
+        </Button>
+      </Group>
 
-      <Paper
-        p={rem(20)}
-        radius="md"
-        mb={rem(24)}
-        style={{ background: 'var(--rb-card)', border: '1px solid var(--rb-border)' }}
+      <Modal
+        opened={newOrderOpen}
+        onClose={() => setNewOrderOpen(false)}
+        title={t('pi_new_standing', 'Neuer Dauerauftrag')}
+        centered
+        overlayProps={{ backgroundOpacity: 0.55, blur: 4 }}
+        styles={{
+          content: {
+            background: 'var(--rb-card)',
+            border: '1px solid var(--rb-border)',
+          },
+          header: {
+            background: 'var(--rb-bg-2)',
+            borderBottom: '1px solid var(--rb-border)',
+          },
+          title: {
+            fontWeight: 700,
+            fontFamily: 'var(--mantine-font-family-headings)',
+            color: 'var(--rb-text)',
+          },
+          body: { paddingTop: rem(16) },
+        }}
       >
-        <Text fw={600} mb={rem(12)}>
-          {t('pi_new_standing', 'Neuer Dauerauftrag')}
-        </Text>
-        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing={rem(12)}>
-          <Select
-            label={t('pi_from_account', 'Abbuchungskonto')}
-            data={accounts.map((a) => ({ value: a.id, label: `${a.name} (${a.id})` }))}
-            value={debtorId}
-            onChange={setDebtorId}
-            styles={{ input: { background: 'var(--rb-surface)', borderColor: 'var(--rb-border)' } }}
-          />
-          <TextInput
-            label={t('pi_creditor', 'Ziel (CitizenID / Konto-ID)')}
-            value={creditor}
-            onChange={(e) => setCreditor(e.currentTarget.value)}
-            styles={{ input: { background: 'var(--rb-surface)', borderColor: 'var(--rb-border)' } }}
-          />
-          <NumberInput
-            label={t('amount', 'Betrag')}
-            value={amount}
-            onChange={setAmount}
-            min={1}
-            styles={{ input: { background: 'var(--rb-surface)', borderColor: 'var(--rb-border)' } }}
-          />
-          <Select
-            label={t('pi_interval', 'Intervall')}
-            data={intervalOptions}
-            value={intervalSec}
-            onChange={setIntervalSec}
-            styles={{ input: { background: 'var(--rb-surface)', borderColor: 'var(--rb-border)' } }}
-          />
-          <TextInput
-            label={t('pi_label', 'Bezeichnung (optional)')}
-            value={label}
-            onChange={(e) => setLabel(e.currentTarget.value)}
-            style={{ gridColumn: '1 / -1' }}
-            styles={{ input: { background: 'var(--rb-surface)', borderColor: 'var(--rb-border)' } }}
-          />
-        </SimpleGrid>
-        <Group mt={rem(16)}>
-          <Button onClick={() => void createOrder()} style={{ background: 'var(--rb-accent)', color: 'var(--rb-accent-contrast)' }}>
-            {t('pi_create_submit', 'Dauerauftrag speichern')}
-          </Button>
-        </Group>
-      </Paper>
-
-      <Divider color="var(--rb-border)" my={rem(8)} />
+        <Stack gap={rem(14)}>
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing={rem(12)}>
+            <Select
+              label={t('pi_from_account', 'Abbuchungskonto')}
+              data={accounts.map((a) => ({ value: a.id, label: `${a.name} (${a.id})` }))}
+              value={debtorId}
+              onChange={setDebtorId}
+              styles={{ input: { background: 'var(--rb-surface)', borderColor: 'var(--rb-border)' } }}
+            />
+            <TextInput
+              label={t('pi_creditor', 'Ziel (CitizenID / Konto-ID)')}
+              value={creditor}
+              onChange={(e) => setCreditor(e.currentTarget.value)}
+              styles={{ input: { background: 'var(--rb-surface)', borderColor: 'var(--rb-border)' } }}
+            />
+            <NumberInput
+              label={t('amount', 'Betrag')}
+              value={amount}
+              onChange={setAmount}
+              min={1}
+              styles={{ input: { background: 'var(--rb-surface)', borderColor: 'var(--rb-border)' } }}
+            />
+            <Select
+              label={t('pi_interval', 'Intervall')}
+              data={intervalOptions}
+              value={intervalSec}
+              onChange={setIntervalSec}
+              styles={{ input: { background: 'var(--rb-surface)', borderColor: 'var(--rb-border)' } }}
+            />
+            <TextInput
+              label={t('pi_label', 'Bezeichnung (optional)')}
+              value={label}
+              onChange={(e) => setLabel(e.currentTarget.value)}
+              style={{ gridColumn: '1 / -1' }}
+              styles={{ input: { background: 'var(--rb-surface)', borderColor: 'var(--rb-border)' } }}
+            />
+          </SimpleGrid>
+          <Group justify="flex-end" gap={rem(10)} mt={rem(4)}>
+            <Button variant="default" onClick={() => setNewOrderOpen(false)}>
+              {t('cancel', 'Abbrechen')}
+            </Button>
+            <Button
+              onClick={() => void createOrder()}
+              style={{ background: 'var(--rb-accent)', color: 'var(--rb-accent-contrast)' }}
+            >
+              {t('pi_create_submit', 'Dauerauftrag speichern')}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       <Text fw={600} mb={rem(12)}>
         {t('pi_list_title', 'Uebersicht')} {loading ? '…' : `(${items.length})`}
