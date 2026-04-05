@@ -8,6 +8,7 @@ import {
   Stack,
   rem,
 } from '@mantine/core';
+import { useViewportSize } from '@mantine/hooks';
 import type { Account } from '../../types';
 import {
   formatMoney,
@@ -29,6 +30,9 @@ export default function HeroSection({ account, accounts: _accounts, t }: HeroSec
   const currency = useBankingStore((s) => s.currency);
   const locale = useBankingStore((s) => s.locale);
   const theme = useBankingStore((s) => s.theme);
+  const { width: vw } = useViewportSize();
+  // Scale ring proportionally to viewport; clamp between 90 and 240px
+  const ringSize = Math.max(90, Math.min(240, Math.round(vw * 120 / 1920)));
 
   if (!account) {
     return (
@@ -151,8 +155,8 @@ export default function HeroSection({ account, accounts: _accounts, t }: HeroSec
         {/* Right: Flow ring */}
         <Box style={{ flexShrink: 0, textAlign: 'center' }}>
           <RingProgress
-            size={120}
-            thickness={10}
+            size={ringSize}
+            thickness={Math.round(ringSize / 12)}
             sections={[
               { value: inflowPct, color: 'var(--rb-accent)' },
               { value: 100 - inflowPct, color: 'var(--rb-flow-out)' },
