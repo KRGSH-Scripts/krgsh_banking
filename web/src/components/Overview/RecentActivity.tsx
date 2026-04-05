@@ -1,0 +1,107 @@
+import { Card, Text, Group, Box, Stack, Divider, rem } from '@mantine/core';
+import type { Account } from '../../types';
+import { formatMoney, formatDate, relativeTime } from '../../lib/formatters';
+import { useBankingStore } from '../../store/bankingStore';
+
+interface RecentActivityProps {
+  account: Account | null;
+  t: (key: string, fallback?: string) => string;
+}
+
+export default function RecentActivity({ account, t }: RecentActivityProps) {
+  const currency = useBankingStore((s) => s.currency);
+  const locale = useBankingStore((s) => s.locale);
+
+  if (!account) return null;
+
+  const recent = (account.transactions ?? []).slice(0, 5);
+
+  return (
+    <Card
+      p={rem(20)}
+      style={{
+        background: 'var(--rb-card)',
+        border: '1px solid var(--rb-border)',
+        borderRadius: rem(16),
+      }}
+    >
+      <Group justify="space-between" mb={rem(16)}>
+        <Box>
+          <Text size="xs" c="dimmed" tt="uppercase" fw={600} lts={0.5}>
+            {t('recentTransactions', 'Letzte Buchungen')}
+          </Text>
+          <Text fw={600} style={{ color: 'var(--rb-text)' }}>
+            Letzte Aktivität
+          </Text>
+        </Box>
+        <Text size="xs" style={{ color: 'var(--rb-text-muted)' }}>
+          {account.id}
+        </Text>
+      </Group>
+
+      {recent.length === 0 ? (
+        <Text size="sm" style={{ color: 'var(--rb-text-muted)' }} ta="center" py={rem(16)}>
+          {t('noTransactions', 'Keine Buchungen gefunden')}
+        </Text>
+      ) : (
+        <Stack gap={0}>
+          {recent.map((tx, i) => {
+            const isIn = (tx.trans_type ?? '').toLowerCase() === 'deposit';
+            return (
+              <Box key={tx.trans_id}>
+                <Group py={rem(10)} justify="space-between" wrap="nowrap">
+                  {/* Icon */}
+                  <Box
+                    style={{
+                      width: rem(32),
+                      height: rem(32),
+                      borderRadius: '50%',
+                      background: isIn ? 'var(--rb-inflow-muted-bg)' : 'rgba(251,113,133,0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      fontSize: rem(14),
+                      fontWeight: 700,
+                      color: isIn ? 'var(--rb-inflow)' : 'var(--rb-danger)',
+                    }}
+                  >
+                    {isIn ? '+' : '−'}
+                  </Box>
+
+                  {/* Details */}
+                  <Box style={{ flex: 1, minWidth: 0 }}>
+                    <Text size="sm" fw={600} style={{ color: 'var(--rb-text)' }} truncate>
+                      {tx.message || tx.title || 'Buchung'}
+                    </Text>
+                    <Text size="xs" style={{ color: 'var(--rb-text-muted)' }} truncate>
+                      {tx.receiver || tx.issuer || '-'}
+                    </Text>
+                    <Text size="xs" style={{ color: 'var(--rb-text-soft)' }}>
+                      {formatDate(tx.time)}
+                    </Text>
+                  </Box>
+
+                  {/* Amount */}
+                  <Box ta="right" style={{ flexShrink: 0 }}>
+                    <Text
+                      fw={700}
+                      size="sm"
+                      className={isIn ? 'amount-in' : 'amount-out'}
+                    >
+                      {isIn ? '+' : '−'}{formatMoney(tx.amount, currency)}
+                    </Text>
+                    <Text size="xs" style={{ color: 'var(--rb-text-muted)' }}>
+                      {relativeTime(tx.time, locale)}
+                    </Text>
+                  </Box>
+                </Group>
+                {i < recent.length - 1 && <Divider color="var(--rb-divider)" />}
+              </Box>
+            );
+          })}
+        </Stack>
+      )}
+    </Card>
+  );
+}
