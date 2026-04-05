@@ -13,7 +13,7 @@ Config = {
         bank = {
             theme = 'DEFAULT',
             institution = 'Los Santos Banking',
-            subtitle = 'Online Banking',
+            subtitle = 'Where your money makes us rich',
             location = 'Los Santos',
             contextLabel = 'Bank'
         },
@@ -93,13 +93,13 @@ Config = {
     },
     atms = {
         -- Backwards compatible: plain model hashes still work
-        `prop_atm_01`,
+        "prop_atm_01",
         -- Optional per-ATM model branding via `BankConfig` / `bankConfig`
         -- ATM `location` is resolved automatically from the player's current street on open.
         -- { model = `prop_fleeca_atm`, BankConfig = { theme = 'FLEECA', institution = 'FLEECA Bank', contextLabel = 'Geldautomat' } },
-        `prop_atm_02`,
-        `prop_atm_03`,
-        `prop_fleeca_atm`
+        "prop_atm_02",
+        "prop_atm_03",
+        { model = "prop_fleeca_atm", BankConfig = { theme = 'FLEECA', institution = 'FLEECA Bank', contextLabel = 'Geldautomat' } },
     },
     peds = {
         [1] = { -- Pacific Standard
@@ -115,7 +115,9 @@ Config = {
         },
         [3] = {
             model = 'ig_barry',
-            coords = vector4(149.46, -1042.09, 29.37, 335.43)
+            createAccounts = true,
+            coords = vector4(149.46, -1042.09, 29.37, 335.43),
+            BankConfig = { theme = 'FLEECA', institution = 'FLEECA BANK', subtitle = 'Privat und Geschäftskunden Bank', location = 'Strawberry Avenue' }
         },
         [4] = {
             model = 'ig_barry',
