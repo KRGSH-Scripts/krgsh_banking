@@ -190,5 +190,9 @@
     "journal_filter_chip_parties": "Parties",
     "journal_filter_chip_text": "Text",
     "journal_filter_active_label": "Active:",
-    "journal_filter_remove": "Remove"
+    "journal_filter_remove": "Remove",
+    "pi_error_db": "Database error — check server console.",
+    "pi_error_auth": "No permission for this debit account.",
+    "pi_error_invalid": "Invalid input (amount, interval at least 60s, recipient).",
+    "pi_new_standing_btn": "New standing order"
 }
