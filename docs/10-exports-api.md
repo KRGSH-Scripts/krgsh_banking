@@ -27,6 +27,13 @@ Die Resource stellt eine öffentliche Server-API über Lua-Exports bereit. Diese
 | `cancel_payment_instruction` | Funktion | Auftrag kündigen |
 | `suspend_subscription_system` | Funktion | Abo systemseitig aussetzen / wieder freigeben |
 | `trigger_direct_debit` | Funktion | Einzellastschrift (bei `interval_seconds = 0` oder zusätzlich) |
+| `createSubscription` | Funktion | Abo mit `external_id`, Events und numerischer `subscription_id` (siehe [13-subscription-api.md](13-subscription-api.md)) |
+| `updateSubscription` | Funktion | API-Abo per `external_id` patchen |
+| `pauseSubscription` / `resumeSubscription` / `cancelSubscription` | Funktion | API-Abo-Status steuern |
+| `getSubscriptionByExternalId` | Funktion | Ein API-Abo lesen |
+| `listSubscriptions` | Funktion | Alle API-Abos der aufrufenden Resource |
+| `isSubscriptionActive` | Funktion | Prüfen, ob API-Abo aktiv ausführbar ist |
+| `findActiveSubscription` | Funktion | Aktives API-Abo zu Sender/Empfänger finden |
 
 ---
 
@@ -73,6 +80,8 @@ local id, err = exports['YourResourceName']:create_subscription(
 ```
 
 Benötigt Eintrag in `Config.paymentInstructionsTrustedResources` oder Aufruf nur aus der Banking-Resource.
+
+**Neues tabellenbasiertes Abo** mit Server-Events und `external_id`: siehe [13-subscription-api.md](13-subscription-api.md) (`createSubscription`, `updateSubscription`, …).
 
 ### `create_standing_order`
 

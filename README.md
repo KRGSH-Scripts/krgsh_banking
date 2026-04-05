@@ -123,6 +123,7 @@ Vollständige API-Referenz: [docs/10-exports-api.md](docs/10-exports-api.md)
 | [docs/10-exports-api.md](docs/10-exports-api.md) | Vollständige Export-API, Net-Events, Callbacks |
 | [docs/11-database-schema.md](docs/11-database-schema.md) | Tabellenschema, JSON-Formate, SQL-Operationen, Migrations-Hinweise |
 | [docs/12-config.md](docs/12-config.md) | Vollständige Konfigurationsreferenz (config.lua) |
+| [docs/13-subscription-api.md](docs/13-subscription-api.md) | Subscription-API: Exports, `external_id`, Server-Events (`TriggerEvent`) |
 
 ---
 

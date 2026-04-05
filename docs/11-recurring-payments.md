@@ -8,6 +8,7 @@ Die Tabelle `bank_payment_instructions` speichert alle Aufträge. Ein Server-Wor
 - **Lastschrift (`direct_debit`)**: Anlage per Export; Schuldner muss in der UI bestätigen. `interval_seconds = 0` = nur manuelle Abbuchung per `trigger_direct_debit`.
 - **Ratenzahlung (`installment`)**: wie Lastschrift mit Bestätigung; `metadata.remaining_principal` wird pro Lauf reduziert, letzte Rate = `min(Rate, Rest)`.
 - **Subscription (`subscription`)**: nur per Export; Nutzer kann pausieren, kündigen; **Aussetzen (System)** setzt `metadata.system_suspended` (nur vertrauenswürdige Resource).
+- **Subscription-API (neu)**: tabellenbasierter Export `createSubscription` mit `external_id`, numerischer `subscription_id` und konfigurierbaren **Server-Events** (`TriggerEvent`). Vollständige Referenz: [13-subscription-api.md](13-subscription-api.md). Der ältere Export `create_subscription(debtor, creditor, amount, interval, metadata)` bleibt für einfache Fälle ohne Event-Pipeline erhalten.
 
 ## SQL
 
@@ -17,7 +18,7 @@ Die Tabelle wird beim Resource-Start mit angelegt (siehe `server/main.lua`, `cre
 
 In `config.lua`:
 
-- `paymentInstructionsTrustedResources` – Liste von Resource-Namen, die `create_subscription` und `suspend_subscription_system` aufrufen dürfen. Leer = nur die Banking-Resource selbst.
+- `paymentInstructionsTrustedResources` – Liste von Resource-Namen, die `create_subscription`, **`createSubscription`** (API) und `suspend_subscription_system` aufrufen dürfen. Leer = nur die Banking-Resource selbst.
 
 ## NUI / Client
 
