@@ -1,6 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { MantineProvider, createTheme } from '@mantine/core';
+import {
+  MantineProvider,
+  createTheme,
+  defaultCssVariablesResolver,
+  type CSSVariablesResolver,
+} from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createRouter, createMemoryHistory } from '@tanstack/react-router';
 import '@mantine/core/styles.css';
@@ -40,6 +45,16 @@ const theme = createTheme({
   },
 });
 
+/** FiveM NUI: Mantine würde sonst body über --mantine-color-body schwarz färben */
+const nuiCssVariablesResolver: CSSVariablesResolver = (t) => {
+  const base = defaultCssVariablesResolver(t);
+  return {
+    ...base,
+    dark: { ...base.dark, '--mantine-color-body': 'transparent' },
+    light: { ...base.light, '--mantine-color-body': 'transparent' },
+  };
+};
+
 // ─── TanStack Query ───────────────────────────────────────────────────────────
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,7 +84,12 @@ if (!rootEl) throw new Error('Root element not found');
 ReactDOM.createRoot(rootEl).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <MantineProvider theme={theme} defaultColorScheme="dark" forceColorScheme="dark">
+      <MantineProvider
+        theme={theme}
+        defaultColorScheme="dark"
+        forceColorScheme="dark"
+        cssVariablesResolver={nuiCssVariablesResolver}
+      >
         <RouterProvider router={router} />
       </MantineProvider>
     </QueryClientProvider>
