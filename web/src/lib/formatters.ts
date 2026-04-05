@@ -100,25 +100,81 @@ export function metricsForAccount(account: Account): AccountMetrics {
   return { inflow, outflow };
 }
 
-export interface ChartBucket {
-  label: string;
-  value: number;
-  pct: number;
-  type: 'in' | 'out';
+export interface DailyMovementPoint {
+  /** Short label for the chart X axis (local calendar day). */
+  day: string;
+  /** Local calendar day `YYYY-MM-DD`. */
+  dateKey: string;
+  deposit: number;
+  withdraw: number;
 }
 
-export function chartBuckets(account: Account): ChartBucket[] {
-  const txs = (account.transactions ?? []).slice(0, 6).reverse();
-  const max = Math.max(1, ...txs.map((tx) => Math.abs(Number(tx.amount) || 0)));
-  return txs.map((tx, i) => {
-    const val = Math.abs(Number(tx.amount) || 0);
-    return {
-      label: String(i + 1),
-      value: val,
-      pct: Math.max(10, Math.round((val / max) * 100)),
-      type: (tx.trans_type ?? '').toLowerCase() === 'deposit' ? 'in' : 'out',
-    };
-  });
+function localDateKeyFromUnix(sec: number): string {
+  const d = new Date(sec * 1000);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Last `dayCount` calendar days (local), oldest → newest; sums per day. */
+export function dailyMovementSeries(
+  account: Account,
+  dayCount: 7 | 30,
+): DailyMovementPoint[] {
+  const now = new Date();
+  const todayStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    0,
+    0,
+    0,
+    0,
+  );
+  const firstDayStart = new Date(todayStart);
+  firstDayStart.setDate(firstDayStart.getDate() - (dayCount - 1));
+
+  const startSec = Math.floor(firstDayStart.getTime() / 1000);
+  const endSec =
+    Math.floor(todayStart.getTime() / 1000) + 24 * 60 * 60 - 1;
+
+  const points: DailyMovementPoint[] = [];
+  const cursor = new Date(firstDayStart);
+  for (let i = 0; i < dayCount; i++) {
+    const y = cursor.getFullYear();
+    const mo = cursor.getMonth();
+    const da = cursor.getDate();
+    const dateKey = `${y}-${String(mo + 1).padStart(2, '0')}-${String(da).padStart(2, '0')}`;
+    const day = cursor.toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+    });
+    points.push({ day, dateKey, deposit: 0, withdraw: 0 });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  const byKey = new Map(
+    points.map((p) => [p.dateKey, p] as const),
+  );
+
+  for (const tx of account.transactions ?? []) {
+    const t = Number(tx.time);
+    if (!Number.isFinite(t) || t < startSec || t > endSec) continue;
+    const key = localDateKeyFromUnix(t);
+    const row = byKey.get(key);
+    if (!row) continue;
+    const amt = Math.abs(Number(tx.amount) || 0);
+    if ((tx.trans_type ?? '').toLowerCase() === 'deposit')
+      row.deposit += amt;
+    else row.withdraw += amt;
+  }
+
+  return points;
+}
+
+export function dailySeriesHasActivity(points: DailyMovementPoint[]): boolean {
+  return points.some((p) => p.deposit > 0 || p.withdraw > 0);
 }
 
 export function sumAccountBalances(accounts: Account[]): number {

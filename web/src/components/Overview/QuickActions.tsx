@@ -35,7 +35,7 @@ export default function QuickActions({ selectedAccount, t }: QuickActionsProps) 
           },
         }}
       >
-        {t('deposit_but', 'Einzahlen')}
+        {t('deposit_but', 'Einzahlung')}
       </Button>
       <Button
         leftSection={<IconArrowUpCircle size={16} />}
@@ -52,7 +52,7 @@ export default function QuickActions({ selectedAccount, t }: QuickActionsProps) 
           },
         }}
       >
-        {t('withdraw_but', 'Abheben')}
+        {t('withdraw_but', 'Auszahlung')}
       </Button>
       <Button
         leftSection={<IconArrowsRightLeft size={16} />}
