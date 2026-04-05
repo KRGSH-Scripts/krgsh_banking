@@ -273,6 +273,7 @@ export default function AnalyticsChart({ account, t }: AnalyticsChartProps) {
           />
           <Bar
             layout="horizontal"
+            maxBarSize={10}
             dataKey={(d: DailyOhlcPoint) => [d.low, d.high]}
             fill="transparent"
             shape={CandlestickShape}
