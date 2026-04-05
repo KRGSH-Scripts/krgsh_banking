@@ -58,21 +58,8 @@ local function canManageDebtorAccount(source, debtorAccountId)
     if not Player then return false end
     local cid = GetIdentifier(Player)
     if debtorAccountId == cid then return true end
-    local acc = D.cachedAccounts[debtorAccountId]
-    if not acc then return false end
-    if acc.auth and acc.auth[cid] then return true end
-    local jobs = GetJobs(Player)
-    if type(jobs) == 'table' and jobs[1] then
-        for k = 1, #jobs do
-            if jobs[k].name == debtorAccountId and IsJobAuth(jobs[k].name, jobs[k].grade) then
-                return true
-            end
-        end
-    elseif type(jobs) == 'table' and jobs.name == debtorAccountId and IsJobAuth(jobs.name, jobs.grade) then
-        return true
-    end
-    local gang = GetGang(Player)
-    if gang and gang ~= 'none' and gang == debtorAccountId and IsGangAuth(Player, gang) then
+    --- Card-only shared accounts with PIN need an active PIN session; PI setup may require unlocking the bank UI first.
+    if D.canUseCachedAccountForBanking and D.canUseCachedAccountForBanking(source, debtorAccountId) then
         return true
     end
     return false

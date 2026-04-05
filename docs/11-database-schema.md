@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS `bank_accounts_new` (
   `isFrozen`       int(11)      DEFAULT 0,
   `creator`        varchar(50)  DEFAULT NULL,
   `display_label`  varchar(100) DEFAULT NULL,
+  `cards`          longtext     DEFAULT '[]',
   PRIMARY KEY (`id`)
 );
 ```
@@ -34,6 +35,7 @@ CREATE TABLE IF NOT EXISTS `bank_accounts_new` (
 | `isFrozen` | int(11) | 0 = aktiv, 1 = eingefroren |
 | `creator` | varchar(50) | CitizenID des Erstellers (nur Shared-Accounts, NULL für Org) |
 | `display_label` | varchar(100) | Anzeigename für Shared-Konten (optional; Jobs nutzen Framework-Label) |
+| `cards` | longtext | JSON-Array aktiver Bankkarten: `[{ "id": "<uuid>", "pinHash": "<hash>|null" }]` |
 
 ### Transaktions-JSON-Format
 

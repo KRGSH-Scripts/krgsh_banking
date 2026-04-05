@@ -87,6 +87,13 @@ RegisterNetEvent("krgsh_banking:client:accountsMenuView", function(data)
                 args = data
             },
             {
+                title = locale("bank_issue_card"),
+                icon = 'credit-card',
+                metadata = {locale("bank_issue_card_txt")},
+                event = "krgsh_banking:client:issueBankCard",
+                args = data
+            },
+            {
                 title = locale("delete_account"),
                 icon = 'users-gear',
                 metadata = {locale("delete_account_txt")},
@@ -158,6 +165,32 @@ RegisterNetEvent('krgsh_banking:client:addAccountMember', function(data)
         input[1] = input[1]:upper():gsub("%s+", "")
         TriggerServerEvent('krgsh_banking:server:addAccountMember', data.account, input[1])
     end
+end)
+
+RegisterNetEvent('krgsh_banking:client:issueBankCard', function(data)
+    local input = lib.inputDialog(locale('bank_issue_card'), {
+        {
+            type = 'number',
+            label = locale('bank_card_target_server_id'),
+            description = locale('bank_card_target_server_id_desc'),
+            default = GetPlayerServerId(PlayerId()),
+            min = 1,
+        },
+        {
+            type = 'input',
+            label = locale('bank_card_pin_optional'),
+            password = true,
+        },
+    })
+    if not input then return end
+    local targetId = tonumber(input[1]) or GetPlayerServerId(PlayerId())
+    local pinRaw = input[2]
+    local pin = (type(pinRaw) == 'string' and pinRaw ~= '') and pinRaw or nil
+    lib.callback.await('krgsh_banking:server:issueBankCard', false, {
+        accountId = data.account,
+        targetServerId = targetId,
+        pin = pin,
+    })
 end)
 
 RegisterNetEvent('krgsh_banking:client:changeAccountName', function(data)

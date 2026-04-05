@@ -17,7 +17,8 @@ accountManagmentMenu         (Hauptmenü)
         │   ├── addAccountMember  (Mitglied hinzufügen – Input-Dialog)
         │   └── removeMemberConfirmation  (Mitglied entfernen – Bestätigung)
         ├── changeAccountName      (Umbenennen – Input-Dialog)
-        └── deleteAccount          (Löschen – direkt)
+        ├── issueBankCard          (Bankkarte ausstellen – Gebühr, optional PIN, Ziel-Spieler-ID)
+        └── deleteAccount          (Konto schließen – nur Creator, optional Saldo 0)
 ```
 
 ---
@@ -44,7 +45,7 @@ lib.registerContext({
 
 ### Account erstellen: `createAccountMenu`
 
-Input-Dialog mit einem Feld für die **Kontobezeichnung** (Anzeigename). Die **Kontonummer** (`id` / PK) wird serverseitig generiert (Ziffernfolge, Länge an der CitizenID orientiert).
+Input-Dialog mit einem Feld für die **Kontobezeichnung** (Anzeigename). Die **Kontonummer** (`id` / PK) wird serverseitig generiert (Ziffernfolge, **eine Stelle länger** als die CitizenID-Länge, max. 21).
 
 ```lua
 lib.callback.await('krgsh_banking:server:createSharedAccount', false, { displayName = input[1] })
@@ -72,12 +73,16 @@ Wenn keine Konten vorhanden: Hinweis "Account Not Found – You need to be the c
 
 ### Einzelkonto-Aktionen: `accountsMenuView`
 
-Drei Aktionen:
 | Aktion | Event/ServerEvent |
 |---|---|
 | Mitglieder verwalten | `serverEvent: krgsh_banking:server:viewMemberManagement` |
 | Name ändern | `event: krgsh_banking:client:changeAccountName` |
-| Account löschen | `serverEvent: krgsh_banking:server:deleteAccount` |
+| Bankkarte ausstellen | `event: krgsh_banking:client:issueBankCard` → `lib.callback` `krgsh_banking:server:issueBankCard` |
+| Account schließen | `serverEvent: krgsh_banking:server:deleteAccount` |
+
+**Bankkarte:** Item-Name `Config.bankCardItem`, Gebühr `Config.bankCardFee` / `bankCardFeeAccount`, Inventar-Backend `Config.inventoryProvider` (`ox_inventory`, `qb_inventory`, `jaksam_inventory`). Item-Metadaten u. a. `accountId`, `cardId`, `accountName`, `bank`, `label` (für Inventar-Anzeige). PIN optional (min. 4 Zeichen), **nicht** in Metadaten.
+
+**PIN am Geldautomaten / in der Bank:** Client `openBankUI` fragt bei `needsBankCardPin` per Dialog ab; Server `krgsh_banking:server:verifyBankCardPin`.
 
 **Back-Navigation:** `menu = "renewed_banking_account_list"` – ox_lib zeigt Zurück-Button
 
