@@ -8,9 +8,9 @@ Config = {
     progressbar = 'circle', -- circle or rectangle (Anything other than circle will default to rectangle)
     currency = 'USD', -- USD, EUR, GBP ect.....
     --- Bank cards (shared accounts): item-based access + optional PIN
-    inventoryProvider = 'ox_inventory', -- 'ox_inventory' | 'qb_inventory' | 'jaksam_inventory'
+    inventoryProvider = 'jaksam_inventory', -- 'ox_inventory' | 'qb_inventory' | 'jaksam_inventory'
     --- qb-inventory resource folder is often `qb-inventory` (hyphen); override if yours differs
-    inventoryResource = 'qb-inventory',
+    ---inventoryResource = 'qb-inventory',
     bankCardItem = 'bank_card',
     bankCardFee = 500,
     bankCardFeeAccount = 'bank', -- 'bank' | 'cash'
