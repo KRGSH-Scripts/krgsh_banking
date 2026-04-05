@@ -213,7 +213,9 @@ export function dailyBalanceOhlcSeries(
     const open = running;
     let high = open;
     let low = open;
-    const dayTxs = byDay.get(dateKey) ?? [];
+    const dayTxs = [...(byDay.get(dateKey) ?? [])].sort(
+      (a, b) => (Number(a.time) || 0) - (Number(b.time) || 0),
+    );
     for (const tx of dayTxs) {
       const amt = Math.abs(Number(tx.amount) || 0);
       if ((tx.trans_type ?? '').toLowerCase() === 'deposit') running += amt;
@@ -245,7 +247,12 @@ export interface TrendFromCloses {
 }
 
 const TREND_FLAT_EPS = 1e-6;
+/** Min |balance| used as %-basis; avoids absurd % when start is 0 and matches integer money. */
+const TREND_REF_MIN = 1;
 
+/**
+ * Relative change vs. period start when possible; if start ≈ 0, vs. end; if both ≈ 0, % = 0.
+ */
 export function trendFromCloses(points: DailyOhlcPoint[]): TrendFromCloses {
   if (points.length === 0) {
     return { delta: 0, deltaPct: 0, direction: 'flat' };
@@ -253,8 +260,16 @@ export function trendFromCloses(points: DailyOhlcPoint[]): TrendFromCloses {
   const first = points[0]!.close;
   const last = points[points.length - 1]!.close;
   const delta = last - first;
-  const denom = Math.max(Math.abs(first), 1);
-  const deltaPct = (delta / denom) * 100;
+
+  let deltaPct = 0;
+  if (Math.abs(first) >= TREND_REF_MIN) {
+    deltaPct = (delta / first) * 100;
+  } else if (Math.abs(last) >= TREND_REF_MIN) {
+    deltaPct = (delta / last) * 100;
+  } else if (Math.abs(delta) >= TREND_REF_MIN) {
+    deltaPct = delta > 0 ? 100 : -100;
+  }
+
   let direction: TrendDirection = 'flat';
   if (delta > TREND_FLAT_EPS) direction = 'up';
   else if (delta < -TREND_FLAT_EPS) direction = 'down';

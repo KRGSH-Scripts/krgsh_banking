@@ -19,12 +19,15 @@ export function CandlestickShape(props: unknown) {
   if (!payload) return <g />;
 
   const { open, high, low, close } = payload;
-  const span = high - low;
+  const lo = Math.min(low, high);
+  const hi = Math.max(low, high);
+  const span = hi - lo;
   /** Pixel Y for balance value `v` along the bar (Recharts: y + height spans low→high). */
   const yFor = (v: number) => {
     if (!Number.isFinite(v)) return y + height / 2;
     if (Math.abs(span) < 1e-9) return y + height / 2;
-    return y + (height * (high - v)) / span;
+    const clamped = Math.min(hi, Math.max(lo, v));
+    return y + (height * (hi - clamped)) / span;
   };
 
   const cx = x + width / 2;
@@ -35,7 +38,8 @@ export function CandlestickShape(props: unknown) {
 
   const bodyTop = Math.min(yOpen, yClose);
   const bodyH = Math.max(Math.abs(yClose - yOpen), 1);
-  const bodyW = Math.max(width * 0.62, 4);
+  /** Narrow candle body: ~22–28% of slot, hard-capped so bars stay slim. */
+  const bodyW = Math.min(Math.max(width * 0.24, 1.5), 5.5);
   const bodyX = cx - bodyW / 2;
 
   const bull = close >= open;
@@ -50,7 +54,7 @@ export function CandlestickShape(props: unknown) {
         y1={yHigh}
         y2={yLow}
         stroke="var(--rb-text-muted, rgba(255,255,255,0.45))"
-        strokeWidth={1}
+        strokeWidth={0.85}
       />
       <rect
         x={bodyX}
