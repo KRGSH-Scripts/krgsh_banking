@@ -27,6 +27,24 @@ Config = {
 
 ---
 
+## Bankkarten & Inventar (Shared-Konten)
+
+| Option | Typ | Standard | Beschreibung |
+|---|---|---|---|
+| `inventoryProvider` | string | `'ox_inventory'` | `'ox_inventory'`, `'qb_inventory'` oder `'jaksam_inventory'` — siehe `server/inventory_cards.lua`. |
+| `inventoryResource` | string | `'qb-inventory'` | Resource-Name für QB-Inventar (Ordner/Export oft mit Bindestrich). |
+| `bankCardItem` | string | `'bank_card'` | Item-Name in eurem Inventar; Metadaten: `accountId`, `cardId`, `accountName`, `bank`, `label`, `hasPin`. |
+| `bankCardFee` | number | `500` | Gebühr pro ausgestellter Karte. |
+| `bankCardFeeAccount` | string | `'bank'` | `'bank'` oder `'cash'` — womit der Inhaber zahlt. |
+| `bankCardInstitution` | string\|nil | `nil` | String für Item-Metadatenfeld `bank`; `nil` → `locale('bank_name')` zum Zeitpunkt der Ausstellung. |
+| `bankCardPinSessionSeconds` | number | `600` | Gültigkeit der PIN-Sitzung nach erfolgreicher Eingabe. |
+| `bankCardPinSecret` | string | `'change_me'` | Salt-Input fürs PIN-Hashing; in Produktion besser Convar `krgsh_banking:card_pin_secret` setzen. |
+| `requireZeroBalanceToClose` | boolean | `true` | Shared-Konto nur schließen, wenn Saldo `0`. |
+
+**Shared-Kontonummer (PK):** wird serverseitig als Ziffernfolge mit Länge `personalIdLen(citizenId) + 1` erzeugt, **maximal 21** Stellen (passt zu `varchar(50)`).
+
+---
+
 ## UI-Defaults (`Config.uiDefaults`)
 
 Standard-Branding für Bank und ATM:

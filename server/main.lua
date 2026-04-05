@@ -475,8 +475,10 @@ local function getPlayerData(source, id)
 end
 
 --- Server-side transfer (no `source` required). Optional `opts.debtorPlayer` forces the debitor for personal accounts (NUI must pass the caller).
+--- Optional `opts.subscriptionBookingTitle`: use as booking line title (with txn suffix); `opts.returnTransaction`: third return value `{ transaction, transaction_number, booking_title, booking_title_resolved }`.
 ---@return boolean ok
 ---@return string? err insufficient_funds, creditor_offline, debtor_offline_personal, invalid_amount
+---@return table? details when opts.returnTransaction and subscription title path
 local function executeAccountTransfer(fromAccount, stateid, amount, comment, opts)
     opts = opts or {}
     amount = math.floor(tonumber(amount) or 0)
@@ -487,15 +489,50 @@ local function executeAccountTransfer(fromAccount, stateid, amount, comment, opt
         comment = sanitizeMessage(comment)
     end
 
+    local useSubTitle = type(opts.subscriptionBookingTitle) == 'string' and opts.subscriptionBookingTitle ~= ''
+    local subTid = useSubTitle and genTransactionID() or nil
+    local function subTitleAndNumber()
+        local tid = subTid
+        local compact = string.gsub(tid, '%-', '')
+        if #compact > 16 then
+            compact = string.sub(compact, 1, 16)
+        end
+        local txnNum = '#' .. compact
+        local resolved = opts.subscriptionBookingTitle .. ' ' .. txnNum
+        return resolved, txnNum
+    end
+    local function packDetails(transaction, txnNum, resolvedTitle)
+        if opts.returnTransaction and transaction and useSubTitle then
+            return {
+                transaction = transaction,
+                transaction_number = txnNum,
+                booking_title = opts.subscriptionBookingTitle,
+                booking_title_resolved = resolvedTitle,
+            }
+        end
+        return nil
+    end
+
     if cachedAccounts[fromAccount] then
         if cachedAccounts[stateid] then
             if not RemoveAccountMoney(fromAccount, amount) then
                 return false, 'insufficient_funds'
             end
             AddAccountMoney(stateid, amount)
-            local title = ('%s / %s'):format(cachedAccounts[fromAccount].name, fromAccount)
-            local transaction = handleTransaction(fromAccount, title, amount, comment, cachedAccounts[fromAccount].name, cachedAccounts[stateid].name, 'withdraw')
-            handleTransaction(stateid, title, amount, comment, cachedAccounts[fromAccount].name, cachedAccounts[stateid].name, 'deposit', transaction.trans_id)
+            local title, transaction, txnNum
+            if useSubTitle then
+                local resolved, num = subTitleAndNumber()
+                title = resolved
+                txnNum = num
+                transaction = handleTransaction(fromAccount, title, amount, comment, cachedAccounts[fromAccount].name, cachedAccounts[stateid].name, 'withdraw', subTid)
+                handleTransaction(stateid, title, amount, comment, cachedAccounts[fromAccount].name, cachedAccounts[stateid].name, 'deposit', subTid)
+            else
+                title = ('%s / %s'):format(cachedAccounts[fromAccount].name, fromAccount)
+                transaction = handleTransaction(fromAccount, title, amount, comment, cachedAccounts[fromAccount].name, cachedAccounts[stateid].name, 'withdraw')
+                handleTransaction(stateid, title, amount, comment, cachedAccounts[fromAccount].name, cachedAccounts[stateid].name, 'deposit', transaction.trans_id)
+            end
+            local det = packDetails(transaction, txnNum, title)
+            if det then return true, nil, det end
             return true
         end
         local Player2 = getPlayerData(false, stateid)
@@ -507,9 +544,20 @@ local function executeAccountTransfer(fromAccount, stateid, amount, comment, opt
         end
         AddMoney(Player2, amount, 'bank', comment)
         local plyName = GetCharacterName(Player2)
-        local title = ('%s / %s'):format(cachedAccounts[fromAccount].name, fromAccount)
-        local transaction = handleTransaction(fromAccount, title, amount, comment, cachedAccounts[fromAccount].name, plyName, 'withdraw')
-        handleTransaction(stateid, title, amount, comment, cachedAccounts[fromAccount].name, plyName, 'deposit', transaction.trans_id)
+        local title, transaction, txnNum
+        if useSubTitle then
+            local resolved, num = subTitleAndNumber()
+            title = resolved
+            txnNum = num
+            transaction = handleTransaction(fromAccount, title, amount, comment, cachedAccounts[fromAccount].name, plyName, 'withdraw', subTid)
+            handleTransaction(stateid, title, amount, comment, cachedAccounts[fromAccount].name, plyName, 'deposit', subTid)
+        else
+            title = ('%s / %s'):format(cachedAccounts[fromAccount].name, fromAccount)
+            transaction = handleTransaction(fromAccount, title, amount, comment, cachedAccounts[fromAccount].name, plyName, 'withdraw')
+            handleTransaction(stateid, title, amount, comment, cachedAccounts[fromAccount].name, plyName, 'deposit', transaction.trans_id)
+        end
+        local det = packDetails(transaction, txnNum, title)
+        if det then return true, nil, det end
         return true
     end
 
@@ -524,8 +572,20 @@ local function executeAccountTransfer(fromAccount, stateid, amount, comment, opt
             return false, 'insufficient_funds'
         end
         AddAccountMoney(stateid, amount)
-        local transaction = handleTransaction(fromAccount, locale("personal_acc") .. fromAccount, amount, comment, name, cachedAccounts[stateid].name, "withdraw")
-        handleTransaction(stateid, locale("personal_acc") .. fromAccount, amount, comment, name, cachedAccounts[stateid].name, "deposit", transaction.trans_id)
+        local title, transaction, txnNum
+        if useSubTitle then
+            local resolved, num = subTitleAndNumber()
+            title = resolved
+            txnNum = num
+            transaction = handleTransaction(fromAccount, title, amount, comment, name, cachedAccounts[stateid].name, "withdraw", subTid)
+            handleTransaction(stateid, title, amount, comment, name, cachedAccounts[stateid].name, "deposit", subTid)
+        else
+            title = locale("personal_acc") .. fromAccount
+            transaction = handleTransaction(fromAccount, title, amount, comment, name, cachedAccounts[stateid].name, "withdraw")
+            handleTransaction(stateid, title, amount, comment, name, cachedAccounts[stateid].name, "deposit", transaction.trans_id)
+        end
+        local det = packDetails(transaction, txnNum, title)
+        if det then return true, nil, det end
         return true
     end
     local Player2 = getPlayerData(false, stateid)
@@ -537,8 +597,20 @@ local function executeAccountTransfer(fromAccount, stateid, amount, comment, opt
     end
     local name2 = GetCharacterName(Player2)
     AddMoney(Player2, amount, 'bank', comment)
-    local transaction = handleTransaction(fromAccount, locale("personal_acc") .. fromAccount, amount, comment, name, name2, "withdraw")
-    handleTransaction(stateid, locale("personal_acc") .. fromAccount, amount, comment, name, name2, "deposit", transaction.trans_id)
+    local title, transaction, txnNum
+    if useSubTitle then
+        local resolved, num = subTitleAndNumber()
+        title = resolved
+        txnNum = num
+        transaction = handleTransaction(fromAccount, title, amount, comment, name, name2, "withdraw", subTid)
+        handleTransaction(stateid, title, amount, comment, name, name2, "deposit", subTid)
+    else
+        title = locale("personal_acc") .. fromAccount
+        transaction = handleTransaction(fromAccount, title, amount, comment, name, name2, "withdraw")
+        handleTransaction(stateid, title, amount, comment, name, name2, "deposit", transaction.trans_id)
+    end
+    local det = packDetails(transaction, txnNum, title)
+    if det then return true, nil, det end
     return true
 end
 
@@ -704,6 +776,7 @@ lib.callback.register('krgsh_banking:server:createSharedAccount', function(sourc
         return false
     end
     local cid = GetIdentifier(Player)
+    --- Shared-only: numeric id one digit longer than `personalIdLen(cid)` (min 8..20 for personal), capped at 21.
     local targetLen = math.min(personalIdLen(cid) + 1, 21)
     local accountId = generateSharedAccountId(targetLen)
     if not accountId then
@@ -1165,7 +1238,7 @@ end
 local createTables = {
     { query = "CREATE TABLE IF NOT EXISTS `bank_accounts_new` (`id` varchar(50) NOT NULL, `amount` int(11) DEFAULT 0, `transactions` longtext DEFAULT '[]', `auth` longtext DEFAULT '[]', `isFrozen` int(11) DEFAULT 0, `creator` varchar(50) DEFAULT NULL, `display_label` varchar(100) DEFAULT NULL, `cards` longtext DEFAULT '[]', PRIMARY KEY (`id`));", values = nil },
     { query = "CREATE TABLE IF NOT EXISTS `player_transactions` (`id` varchar(50) NOT NULL, `isFrozen` int(11) DEFAULT 0, `transactions` longtext DEFAULT '[]', PRIMARY KEY (`id`));", values = nil },
-    { query = "CREATE TABLE IF NOT EXISTS `bank_payment_instructions` (`id` varchar(64) NOT NULL, `kind` varchar(32) NOT NULL, `debtor_account_id` varchar(64) NOT NULL, `creditor_target` varchar(64) NOT NULL, `amount` int(11) NOT NULL DEFAULT 0, `interval_seconds` int(11) NOT NULL DEFAULT 0, `next_run_at` bigint NOT NULL, `status` varchar(32) NOT NULL, `metadata` longtext NOT NULL, `created_at` bigint NOT NULL, `updated_at` bigint NOT NULL, PRIMARY KEY (`id`), KEY `idx_pi_next_run` (`next_run_at`,`status`));", values = nil }
+    { query = "CREATE TABLE IF NOT EXISTS `bank_payment_instructions` (`id` varchar(64) NOT NULL, `kind` varchar(32) NOT NULL, `debtor_account_id` varchar(64) NOT NULL, `creditor_target` varchar(64) NOT NULL, `amount` int(11) NOT NULL DEFAULT 0, `interval_seconds` int(11) NOT NULL DEFAULT 0, `next_run_at` bigint NOT NULL, `status` varchar(32) NOT NULL, `metadata` longtext NOT NULL, `created_at` bigint NOT NULL, `updated_at` bigint NOT NULL, `subscription_internal_id` bigint unsigned DEFAULT NULL, `owner_resource` varchar(64) NOT NULL DEFAULT '', `external_id` varchar(128) NOT NULL DEFAULT '', PRIMARY KEY (`id`), UNIQUE KEY `uk_pi_subscription_internal_id` (`subscription_internal_id`), KEY `idx_pi_next_run` (`next_run_at`,`status`), KEY `idx_pi_owner_external` (`owner_resource`,`external_id`));", values = nil }
 }
 
 assert(MySQL.transaction.await(createTables), "Failed to create tables")
@@ -1175,4 +1248,19 @@ pcall(function()
 end)
 pcall(function()
     MySQL.query.await('ALTER TABLE `bank_accounts_new` ADD COLUMN `cards` longtext DEFAULT \'[]\'')
+end)
+pcall(function()
+    MySQL.query.await('ALTER TABLE `bank_payment_instructions` ADD COLUMN `subscription_internal_id` bigint unsigned DEFAULT NULL')
+end)
+pcall(function()
+    MySQL.query.await('ALTER TABLE `bank_payment_instructions` ADD UNIQUE KEY `uk_pi_subscription_internal_id` (`subscription_internal_id`)')
+end)
+pcall(function()
+    MySQL.query.await('ALTER TABLE `bank_payment_instructions` ADD COLUMN `owner_resource` varchar(64) NOT NULL DEFAULT \'\'')
+end)
+pcall(function()
+    MySQL.query.await('ALTER TABLE `bank_payment_instructions` ADD COLUMN `external_id` varchar(128) NOT NULL DEFAULT \'\'')
+end)
+pcall(function()
+    MySQL.query.await('ALTER TABLE `bank_payment_instructions` ADD KEY `idx_pi_owner_external` (`owner_resource`,`external_id`)')
 end)
