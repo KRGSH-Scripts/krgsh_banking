@@ -26,7 +26,12 @@ export function useNuiMessage() {
             store.setSelectedAccountId(accounts[0]?.id ?? null);
           }
 
-          store.setVisible(!!msg.status, !!msg.atm, msg.theme);
+          store.setVisible(
+            !!msg.status,
+            !!msg.atm,
+            msg.theme,
+            !!msg.canCreateAccounts,
+          );
           store.setLoading(!!msg.loading);
 
           void navigate({ to: msg.atm ? '/atm' : '/overview' });

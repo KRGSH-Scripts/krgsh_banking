@@ -14,7 +14,7 @@ import {
 import { useBankingStore } from '../store/bankingStore';
 import { useAccounts } from '../hooks/useAccounts';
 import { useDeposit, useWithdraw, useTransfer } from '../hooks/useAccounts';
-import { formatMoney, accountMask } from '../lib/formatters';
+import { formatMoney, displayAccountNumber } from '../lib/formatters';
 import type { TransactionPayload } from '../types';
 
 interface ActionModalProps {
@@ -141,7 +141,7 @@ export default function ActionModal({ t }: ActionModalProps) {
           {selectedAccount.name || selectedAccount.id}
         </Text>
         <Text size="xs" style={{ color: 'var(--rb-text-soft)' }}>
-          {selectedAccount.id} · {accountMask(selectedAccount)} ·{' '}
+          {displayAccountNumber(selectedAccount)} ·{' '}
           {formatMoney(selectedAccount.amount, currency)}
         </Text>
       </Box>
@@ -151,7 +151,7 @@ export default function ActionModal({ t }: ActionModalProps) {
           {/* Read-only account field */}
           <TextInput
             label={t('accountLabel', 'Konto')}
-            value={`${selectedAccount.name || selectedAccount.id} (${selectedAccount.id})`}
+            value={`${selectedAccount.name || selectedAccount.id} (${displayAccountNumber(selectedAccount)})`}
             readOnly
             styles={{
               input: {

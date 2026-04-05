@@ -2,7 +2,7 @@ import { Card, Text, Group, Box, Badge, Stack, rem } from '@mantine/core';
 import type { Account } from '../../types';
 import {
   formatMoney,
-  accountMask,
+  displayAccountNumber,
   accountTone,
   relativeTime,
 } from '../../lib/formatters';
@@ -44,7 +44,7 @@ export default function AtmHero({ account, t }: AtmHeroProps) {
               {t('atmTerminal', 'Self-Service')}
             </Badge>
             <Text size="xs" style={{ color: 'var(--rb-text-soft)', letterSpacing: 1 }}>
-              {account ? accountMask(account) : '---- ----'}
+              {account ? displayAccountNumber(account) : '—'}
             </Text>
           </Group>
 
@@ -60,7 +60,8 @@ export default function AtmHero({ account, t }: AtmHeroProps) {
             {account ? (account.name || account.id) : 'Kein Konto'}
           </Text>
           <Text size="xs" style={{ color: 'var(--rb-text-muted)' }}>
-            {account ? accountTone(account, locale) : ''} · {account ? account.id : '-'}
+            {account ? accountTone(account, locale) : ''} ·{' '}
+            {account ? displayAccountNumber(account) : '-'}
           </Text>
           <Text
             fw={800}
@@ -95,7 +96,7 @@ export default function AtmHero({ account, t }: AtmHeroProps) {
             {formatMoney(account?.amount ?? 0, currency)}
           </Text>
           <Text size="xs" style={{ color: 'var(--rb-text-soft)' }}>
-            {account ? account.id : '-'}
+            {account ? displayAccountNumber(account) : '-'}
           </Text>
           {latestTx && (
             <Text size="xs" style={{ color: 'var(--rb-text-muted)' }} mt={rem(4)}>

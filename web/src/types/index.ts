@@ -18,6 +18,8 @@ export interface Account {
   id: string;
   type: string;
   name: string;
+  /** Display number (matches personal CitizenID length for org accounts when set by server). */
+  accountNumber?: string;
   frozen: number | boolean;
   amount: number;
   cash?: number; // Only present on the personal account
@@ -74,6 +76,7 @@ export interface SetVisiblePayload {
   accounts: Account[];
   loading: boolean;
   atm: boolean;
+  canCreateAccounts?: boolean;
   theme?: Partial<BankTheme>;
 }
 

@@ -1,4 +1,6 @@
-import { Stack, Box, Text, Group, Divider, rem } from '@mantine/core';
+import { useState } from 'react';
+import { Stack, Box, Text, Group, Divider, rem, ActionIcon, Tooltip } from '@mantine/core';
+import { IconPlus } from '@tabler/icons-react';
 import type { Account } from '../../types';
 import { useBankingStore } from '../../store/bankingStore';
 import {
@@ -7,6 +9,7 @@ import {
   getCashBalance,
 } from '../../lib/formatters';
 import AccountCard from './AccountCard';
+import CreateAccountModal from './CreateAccountModal';
 
 interface SidebarProps {
   accounts: Account[];
@@ -16,8 +19,11 @@ interface SidebarProps {
 export default function Sidebar({ accounts, t }: SidebarProps) {
   const currency = useBankingStore((s) => s.currency);
   const locale = useBankingStore((s) => s.locale);
+  const atm = useBankingStore((s) => s.atm);
+  const canCreateAccounts = useBankingStore((s) => s.canCreateAccounts);
   const setSelectedAccountId = useBankingStore((s) => s.setSelectedAccountId);
   const selectedAccountId = useBankingStore((s) => s.selectedAccountId);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const totalBalance = sumAccountBalances(accounts);
   const cashBalance = getCashBalance(accounts);
@@ -66,15 +72,42 @@ export default function Sidebar({ accounts, t }: SidebarProps) {
 
       {/* Account count */}
       <Box px={rem(20)} pt={rem(18)} pb={rem(10)}>
-        <Group justify="space-between">
+        <Group justify="space-between" wrap="nowrap">
           <Text size="xs" c="dimmed" tt="uppercase" fw={600} lts={1}>
             {t('accountCount', 'Konten')} ({accounts.length})
           </Text>
-          <Text size="xs" style={{ color: 'var(--rb-text-muted)' }}>
-            {t('select_account', 'Konto wählen')}
-          </Text>
+          <Group gap={rem(6)} wrap="nowrap">
+            {canCreateAccounts && !atm && (
+              <Tooltip label={t('create_account_ui', 'Neues Konto')}>
+                <ActionIcon
+                  variant="light"
+                  color="pink"
+                  radius="xl"
+                  size="sm"
+                  aria-label={t('create_account_ui', 'Neues Konto')}
+                  onClick={() => setCreateOpen(true)}
+                  style={{
+                    border: '1px solid var(--rb-border)',
+                    background: 'var(--rb-surface)',
+                    color: 'var(--rb-accent)',
+                  }}
+                >
+                  <IconPlus size={16} stroke={2} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            <Text size="xs" style={{ color: 'var(--rb-text-muted)' }}>
+              {t('select_account', 'Konto wählen')}
+            </Text>
+          </Group>
         </Group>
       </Box>
+
+      <CreateAccountModal
+        opened={createOpen}
+        onClose={() => setCreateOpen(false)}
+        t={t}
+      />
 
       {/* Account list */}
       <Stack gap={rem(14)} px={rem(14)} pb={rem(16)} style={{ flex: 1, overflowY: 'auto' }}>

@@ -59,13 +59,16 @@ Zeigt/versteckt den Lade-Overlay.
 {
     action:   'setVisible',
     status:   true,
-    accounts: [...],      // Array<Account> vom Server
+    accounts: [...],      // Array<Account> vom Server (optional accountNumber)
     loading:  false,
     atm:      false,
+    canCreateAccounts: false,  // true wenn Bank-Ped createAccounts hat (kein ATM)
     theme:    { key, name, subtitle, contextLabel, location, logo, colors }
 }
 ```
 Haupt-Payload beim Öffnen der UI. Setzt alle relevanten State-Felder und rendert.
+
+> **Hinweis:** Die ausgelieferte UI kann ein React/Vite-Build (`web/public/app.js`) sein; das Nachrichtenprotokoll bleibt kompatibel (`setVisible`, `accountNumber`, `canCreateAccounts`).
 
 ### `notify`
 ```js
@@ -85,6 +88,7 @@ Die UI kommuniziert mit dem Server via `fetch POST` an `https://${RESOURCE_NAME}
 | `deposit` | `{ fromAccount, amount, comment }` | `Account[]` oder `false` |
 | `withdraw` | `{ fromAccount, amount, comment }` | `Account[]` oder `false` |
 | `transfer` | `{ fromAccount, amount, comment, stateid }` | `Account[]` oder `false` |
+| `createAccount` | `{ displayName }` | `Account[]` oder `false` |
 
 ```js
 async function postNui(action, payload) {

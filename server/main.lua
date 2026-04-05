@@ -1,10 +1,57 @@
 local cachedAccounts = {}
 local cachedPlayers = {}
+local createSharedCooldown = {}
+
+--- Deterministic numeric string of length `targetLen` for org/job display numbers.
+local function formatSyntheticNumber(internalId, targetLen)
+    targetLen = math.min(math.max(tonumber(targetLen) or 8, 1), 20)
+    if not internalId then
+        return string.rep('0', targetLen)
+    end
+    local s = tostring(internalId)
+    local h = 5381
+    for i = 1, #s do
+        h = (h * 33 + string.byte(s, i)) % 2147483647
+    end
+    local digits = {}
+    for i = 1, targetLen do
+        h = (h * 1103515245 + 12345) % 2147483647
+        digits[i] = tostring(h % 10)
+    end
+    return table.concat(digits)
+end
+
+local function personalIdLen(cid)
+    local n = utf8.len(cid)
+    if not n or n < 1 then
+        n = #tostring(cid or '')
+    end
+    return math.min(math.max(n, 8), 20)
+end
+
+local function accountNumberForEntry(account, cid, lenNonPersonal)
+    if account.id == cid then
+        return account.id
+    end
+    if account.creator ~= nil then
+        return account.id
+    end
+    return formatSyntheticNumber(account.id, lenNonPersonal)
+end
+
+local function cloneAccountForBankData(account, cid, lenNonPersonal)
+    local out = {}
+    for k, v in pairs(account) do
+        out[k] = v
+    end
+    out.accountNumber = accountNumberForEntry(account, cid, lenNonPersonal)
+    return out
+end
 
 CreateThread(function()
     Wait(500)
     local resourceName = GetCurrentResourceName()
-    if not LoadResourceFile(resourceName, 'web/public/app.js') then
+    if not LoadResourceFile(resourceName, 'web/public/index.html') then
         error(locale("ui_not_built"))
         return StopResource(resourceName)
     end
@@ -13,10 +60,13 @@ CreateThread(function()
         for _,v in pairs (accounts) do
             local job = v.id
             v.auth = json.decode(v.auth)
+            local disp = v.display_label
+            local resolvedName = (type(disp) == 'string' and disp ~= '') and disp or GetSocietyLabel(job)
             cachedAccounts[job] = { --  cachedAccounts[#cachedAccounts+1]
                 id = job,
                 type = locale("org"),
-                name = GetSocietyLabel(job),
+                name = resolvedName,
+                display_label = (type(disp) == 'string' and disp ~= '') and disp or nil,
                 frozen = v.isFrozen == 1,
                 amount = v.amount,
                 transactions = json.decode(v.transactions),
@@ -37,13 +87,14 @@ CreateThread(function()
             id = group,
             type = locale('org'),
             name = GetSocietyLabel(group),
+            display_label = nil,
             frozen = 0,
             amount = 0,
             transactions = {},
             auth = {},
             creator = nil
         }
-        query[#query + 1] = {"INSERT INTO bank_accounts_new (id, amount, transactions, auth, isFrozen, creator) VALUES (?, ?, ?, ?, ?, NULL) ",
+        query[#query + 1] = {"INSERT INTO bank_accounts_new (id, amount, transactions, auth, isFrozen, creator, display_label) VALUES (?, ?, ?, ?, ?, NULL, NULL) ",
         { group, cachedAccounts[group].amount, json.encode(cachedAccounts[group].transactions), json.encode({}), cachedAccounts[group].frozen }}
     end
     for job in pairs(jobs) do
@@ -89,6 +140,7 @@ local function getBankData(source)
     local cid = GetIdentifier(Player)
     if not cachedPlayers[cid] then UpdatePlayerAccount(cid) end
     local funds = GetFunds(Player)
+    local plen = personalIdLen(cid)
     bankData[#bankData+1] = {
         id = cid,
         type = locale("personal"),
@@ -97,19 +149,20 @@ local function getBankData(source)
         amount = funds.bank,
         cash = funds.cash,
         transactions = cachedPlayers[cid].transactions,
+        accountNumber = cid,
     }
 
     local jobs = GetJobs(Player)
     if #jobs > 0 then
         for k=1, #jobs do
             if cachedAccounts[jobs[k].name] and IsJobAuth(jobs[k].name, jobs[k].grade) then
-                bankData[#bankData+1] = cachedAccounts[jobs[k].name]
+                bankData[#bankData+1] = cloneAccountForBankData(cachedAccounts[jobs[k].name], cid, plen)
             end
         end
     else
         local job = cachedAccounts[jobs.name]
         if job and IsJobAuth(jobs.name, jobs.grade) then
-            bankData[#bankData+1] = job
+            bankData[#bankData+1] = cloneAccountForBankData(job, cid, plen)
         end
     end
 
@@ -117,14 +170,16 @@ local function getBankData(source)
     if gang and gang ~= 'none' then
         local gangData = cachedAccounts[gang]
         if gangData and IsGangAuth(Player, gang) then
-            bankData[#bankData+1] = gangData
+            bankData[#bankData+1] = cloneAccountForBankData(gangData, cid, plen)
         end
     end
 
     local sharedAccounts = cachedPlayers[cid].accounts
     for k=1, #sharedAccounts do
         local sAccount = cachedAccounts[sharedAccounts[k]]
-        bankData[#bankData+1] = sAccount
+        if sAccount then
+            bankData[#bankData+1] = cloneAccountForBankData(sAccount, cid, plen)
+        end
     end
 
     return bankData
@@ -371,25 +426,68 @@ lib.callback.register('krgsh_banking:server:transfer', function(source, data)
     return bankData
 end)
 
-RegisterNetEvent('krgsh_banking:server:createNewAccount', function(accountid)
+local function trimDisplayName(raw)
+    if type(raw) ~= 'string' then return '' end
+    return (raw:match('^%s*(.-)%s*$') or '')
+end
+
+local function generateSharedAccountId(targetLen)
+    local id
+    for _ = 1, 80 do
+        local parts = {}
+        for i = 1, targetLen do
+            parts[i] = tostring(math.random(0, 9))
+        end
+        id = table.concat(parts)
+        if not cachedAccounts[id] then
+            return id
+        end
+    end
+    return nil
+end
+
+lib.callback.register('krgsh_banking:server:createSharedAccount', function(source, data)
+    local now = os.time()
+    local last = createSharedCooldown[source]
+    if last and (now - last) < 2 then
+        Notify(source, { title = locale("bank_name"), description = locale("create_account_rate_limit"), type = "error" })
+        return false
+    end
+    createSharedCooldown[source] = now
+
     local Player = GetPlayerObject(source)
-    if cachedAccounts[accountid] then return Notify(source, {title = locale("bank_name"), description = locale("account_taken"), type = "error"}) end
+    if not Player then return false end
+    local displayName = trimDisplayName(data and data.displayName)
+    local nameLen = utf8.len(displayName) or #displayName
+    if displayName == '' or nameLen > 100 then
+        Notify(source, { title = locale("bank_name"), description = locale("create_account_invalid_name"), type = "error" })
+        return false
+    end
     local cid = GetIdentifier(Player)
-    cachedAccounts[accountid] = {
-        id = accountid,
+    local targetLen = personalIdLen(cid)
+    local accountId = generateSharedAccountId(targetLen)
+    if not accountId then
+        Notify(source, { title = locale("bank_name"), description = locale("create_account_failed"), type = "error" })
+        return false
+    end
+    if not cachedPlayers[cid] then UpdatePlayerAccount(cid) end
+    cachedAccounts[accountId] = {
+        id = accountId,
         type = locale("org"),
-        name = accountid,
+        name = displayName,
+        display_label = displayName,
         frozen = 0,
         amount = 0,
         transactions = {},
         auth = { [cid] = true },
         creator = cid
-
     }
-    cachedPlayers[cid].accounts[#cachedPlayers[cid].accounts+1] = accountid
-    MySQL.insert("INSERT INTO bank_accounts_new (id, amount, transactions, auth, isFrozen, creator) VALUES (?, ?, ?, ?, ?, ?) ",{
-        accountid, cachedAccounts[accountid].amount, json.encode(cachedAccounts[accountid].transactions), json.encode({cid}), cachedAccounts[accountid].frozen, cid
-    })
+    cachedPlayers[cid].accounts[#cachedPlayers[cid].accounts+1] = accountId
+    MySQL.insert(
+        "INSERT INTO bank_accounts_new (id, amount, transactions, auth, isFrozen, creator, display_label) VALUES (?, ?, ?, ?, ?, ?, ?) ",
+        { accountId, 0, json.encode({}), json.encode({ cid }), 0, cid, displayName }
+    )
+    return getBankData(source)
 end)
 
 RegisterNetEvent("krgsh_banking:server:getPlayerAccounts", function()
@@ -507,16 +605,19 @@ local function split(str, delimiter)
 end
 
 
-local function updateAccountName(account, newName, src)
-    if not account or not newName then return false end
-    if not cachedAccounts[account] then
-        local getTranslation = locale("invalid_account", account)
-        print(getTranslation)
-        if src then Notify(src, {title = locale("bank_name"), description = split(getTranslation, '0')[2], type = "error"}) end
+--- Updates display label only; primary key `id` stays stable (shared accounts).
+local function updateAccountName(account, newLabel, src)
+    if not account or not newLabel then return false end
+    newLabel = trimDisplayName(tostring(newLabel))
+    local labelLen = utf8.len(newLabel) or #newLabel
+    if newLabel == '' or labelLen > 100 then
+        if src then
+            Notify(src, { title = locale("bank_name"), description = locale("create_account_invalid_name"), type = "error" })
+        end
         return false
     end
-    if cachedAccounts[newName] then
-        local getTranslation = locale("existing_account", account)
+    if not cachedAccounts[account] then
+        local getTranslation = locale("invalid_account", account)
         print(getTranslation)
         if src then Notify(src, {title = locale("bank_name"), description = split(getTranslation, '0')[2], type = "error"}) end
         return false
@@ -531,31 +632,17 @@ local function updateAccountName(account, newName, src)
         end
     end
 
-    cachedAccounts[newName] = json.decode(json.encode(cachedAccounts[account]))
-    cachedAccounts[newName].id = newName
-    cachedAccounts[newName].name = newName
-    cachedAccounts[account] = nil
-    for _, id in ipairs(GetPlayers()) do
-        local Player2 = GetPlayerObject(id)
-        if not Player2 then goto Skip end
-        local cid = GetIdentifier(Player2)
-        if #cachedPlayers[cid].accounts >= 1 then
-            for k=1, #cachedPlayers[cid].accounts do
-                if cachedPlayers[cid].accounts[k] == account then
-                    table.remove(cachedPlayers[cid].accounts, k)
-                    cachedPlayers[cid].accounts[#cachedPlayers[cid].accounts+1] = newName
-                end
-            end
-        end
-        ::Skip::
-    end
-    MySQL.update('UPDATE bank_accounts_new SET id = ? WHERE id = ?',{newName, account})
+    cachedAccounts[account].name = newLabel
+    cachedAccounts[account].display_label = newLabel
+    MySQL.update('UPDATE bank_accounts_new SET display_label = ? WHERE id = ?', { newLabel, account })
     return true
 end
 
 RegisterNetEvent('krgsh_banking:server:changeAccountName', function(account, newName)
     updateAccountName(account, newName, source)
-end) exports("changeAccountName", updateAccountName)-- Should only use this on very secure backends to avoid anyone using this as this is a server side ONLY export --
+end)
+--- Changes shared account display label only (not the account id / PK).
+exports("changeAccountName", updateAccountName)
 
 --- Retrieves a cached job account if it exists.
 ---@param jobName string The name of the job whose account is being retrieved.
@@ -601,6 +688,7 @@ local function CreateJobAccount(job, initialBalance)
         id = job.name,
         type = locale("org"),
         name = job.label,
+        display_label = nil,
         frozen = 0,
         amount = tonumber(initialBalance) or 0,
         transactions = {},
@@ -608,7 +696,7 @@ local function CreateJobAccount(job, initialBalance)
         creator = nil
     }
 
-    local success, errorMsg = MySQL.insert("INSERT INTO bank_accounts_new (id, amount, transactions, auth, isFrozen, creator) VALUES (?, ?, ?, ?, ?, NULL)", {
+    local success, errorMsg = MySQL.insert("INSERT INTO bank_accounts_new (id, amount, transactions, auth, isFrozen, creator, display_label) VALUES (?, ?, ?, ?, ?, NULL, NULL)", {
         job.name,
         cachedAccounts[job.name].amount,
         json.encode(cachedAccounts[job.name].transactions), -- Convert transactions to JSON
@@ -735,8 +823,12 @@ function ExportHandler(resource, name, cb)
 end
 
 local createTables = {
-    { query = "CREATE TABLE IF NOT EXISTS `bank_accounts_new` (`id` varchar(50) NOT NULL, `amount` int(11) DEFAULT 0, `transactions` longtext DEFAULT '[]', `auth` longtext DEFAULT '[]', `isFrozen` int(11) DEFAULT 0, `creator` varchar(50) DEFAULT NULL, PRIMARY KEY (`id`));", values = nil },
+    { query = "CREATE TABLE IF NOT EXISTS `bank_accounts_new` (`id` varchar(50) NOT NULL, `amount` int(11) DEFAULT 0, `transactions` longtext DEFAULT '[]', `auth` longtext DEFAULT '[]', `isFrozen` int(11) DEFAULT 0, `creator` varchar(50) DEFAULT NULL, `display_label` varchar(100) DEFAULT NULL, PRIMARY KEY (`id`));", values = nil },
     { query = "CREATE TABLE IF NOT EXISTS `player_transactions` (`id` varchar(50) NOT NULL, `isFrozen` int(11) DEFAULT 0, `transactions` longtext DEFAULT '[]', PRIMARY KEY (`id`));", values = nil }
 }
 
 assert(MySQL.transaction.await(createTables), "Failed to create tables")
+
+pcall(function()
+    MySQL.query.await('ALTER TABLE `bank_accounts_new` ADD COLUMN `display_label` varchar(100) DEFAULT NULL')
+end)

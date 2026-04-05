@@ -2,7 +2,7 @@ import { Box, Text, Group, Badge, UnstyledButton, rem } from '@mantine/core';
 import type { Account } from '../../types';
 import {
   formatMoney,
-  accountMask,
+  displayAccountNumber,
   accountTone,
   themeTag,
   relativeTime,
@@ -147,7 +147,7 @@ export default function AccountCard({
             marginBottom: rem(12),
           }}
         >
-          {accountMask(account)}
+          {displayAccountNumber(account)}
         </Text>
 
         <Group justify="space-between" align="flex-end" wrap="nowrap">

@@ -12,12 +12,13 @@ Speichert alle Org-Konten (Jobs, Gangs) und Shared-Konten.
 
 ```sql
 CREATE TABLE IF NOT EXISTS `bank_accounts_new` (
-  `id`           varchar(50)  NOT NULL,
-  `amount`       int(11)      DEFAULT 0,
-  `transactions` longtext     DEFAULT '[]',
-  `auth`         longtext     DEFAULT '[]',
-  `isFrozen`     int(11)      DEFAULT 0,
-  `creator`      varchar(50)  DEFAULT NULL,
+  `id`             varchar(50)  NOT NULL,
+  `amount`         int(11)      DEFAULT 0,
+  `transactions`   longtext     DEFAULT '[]',
+  `auth`           longtext     DEFAULT '[]',
+  `isFrozen`       int(11)      DEFAULT 0,
+  `creator`        varchar(50)  DEFAULT NULL,
+  `display_label`  varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`)
 );
 ```
@@ -26,12 +27,13 @@ CREATE TABLE IF NOT EXISTS `bank_accounts_new` (
 
 | Feld | Typ | Beschreibung |
 |---|---|---|
-| `id` | varchar(50) | Eindeutige Account-ID (Job-Name oder benutzerdefinierter Name) |
+| `id` | varchar(50) | Eindeutige Account-ID (Job-/Gang-Name oder servergenerierte Shared-Kontonummer) |
 | `amount` | int(11) | Aktueller Kontostand in der konfigurierten Währung |
 | `transactions` | longtext | JSON-Array von Transaction-Objekten (neueste zuerst) |
 | `auth` | longtext | JSON-Array von CitizenIDs mit Kontozugriff |
 | `isFrozen` | int(11) | 0 = aktiv, 1 = eingefroren |
 | `creator` | varchar(50) | CitizenID des Erstellers (nur Shared-Accounts, NULL für Org) |
+| `display_label` | varchar(100) | Anzeigename für Shared-Konten (optional; Jobs nutzen Framework-Label) |
 
 ### Transaktions-JSON-Format
 
