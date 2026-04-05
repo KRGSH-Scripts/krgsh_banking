@@ -1,1 +1,10 @@
 node_modules/
+
+# Vite build output (outDir: public) – NUI-Bundle, index.html, Kopie von static/
+public/
+
+# Vite / TypeScript
+dist/
+*.local
+.env
+.env.*
