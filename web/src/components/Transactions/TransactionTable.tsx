@@ -331,11 +331,13 @@ export default function TransactionTable({
             radius="md"
             opened={filterPopoverOpened}
             onChange={setFilterPopoverOpened}
-            trapFocus
+            withinPortal={false}
+            trapFocus={false}
             styles={{
               dropdown: {
                 background: 'var(--rb-card)',
                 border: '1px solid var(--rb-border)',
+                zIndex: 200,
               },
             }}
           >
@@ -345,6 +347,7 @@ export default function TransactionTable({
                 size="sm"
                 radius="md"
                 leftSection={<IconFilter size={16} stroke={1.75} />}
+                onClick={() => setFilterPopoverOpened((o) => !o)}
                 styles={{
                   root: {
                     background: 'var(--rb-surface)',
