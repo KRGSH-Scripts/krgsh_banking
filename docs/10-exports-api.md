@@ -27,6 +27,13 @@ Die Resource stellt eine öffentliche Server-API über Lua-Exports bereit. Diese
 | `cancel_payment_instruction` | Funktion | Auftrag kündigen |
 | `suspend_subscription_system` | Funktion | Abo systemseitig aussetzen / wieder freigeben |
 | `trigger_direct_debit` | Funktion | Einzellastschrift (bei `interval_seconds = 0` oder zusätzlich) |
+| `createSubscription` | Funktion | Abo mit `external_id`, Events und numerischer `subscription_id` (siehe [13-subscription-api.md](13-subscription-api.md)) |
+| `updateSubscription` | Funktion | API-Abo per `external_id` patchen |
+| `pauseSubscription` / `resumeSubscription` / `cancelSubscription` | Funktion | API-Abo-Status steuern |
+| `getSubscriptionByExternalId` | Funktion | Ein API-Abo lesen |
+| `listSubscriptions` | Funktion | Alle API-Abos der aufrufenden Resource |
+| `isSubscriptionActive` | Funktion | Prüfen, ob API-Abo aktiv ausführbar ist |
+| `findActiveSubscription` | Funktion | Aktives API-Abo zu Sender/Empfänger finden |
 
 ---
 
@@ -74,6 +81,8 @@ local id, err = exports['YourResourceName']:create_subscription(
 
 Benötigt Eintrag in `Config.paymentInstructionsTrustedResources` oder Aufruf nur aus der Banking-Resource.
 
+**Neues tabellenbasiertes Abo** mit Server-Events und `external_id`: siehe [13-subscription-api.md](13-subscription-api.md) (`createSubscription`, `updateSubscription`, …).
+
 ### `create_standing_order`
 
 Wie Dauerauftrag, direkt aktiv (ohne Mandats-Bestätigung).
@@ -104,7 +113,7 @@ local ok, err = exports['YourResourceName']:trigger_direct_debit(instructionId, 
 ### `handleTransaction`
 
 ```lua
-exports['Renewed-Banking']:handleTransaction(
+exports['krgsh_banking']:handleTransaction(
     account,    -- string: Job-Name oder CitizenID
     title,      -- string: Buchungstitel
     amount,     -- number: Betrag
@@ -134,7 +143,7 @@ exports['Renewed-Banking']:handleTransaction(
 **Verwendungsbeispiel:**
 ```lua
 -- In einem Gehaltszahlungs-Script:
-exports['Renewed-Banking']:handleTransaction(
+exports['krgsh_banking']:handleTransaction(
     Player.PlayerData.citizenid,
     "Personal Account / " .. Player.PlayerData.citizenid,
     2500,
@@ -150,7 +159,7 @@ exports['Renewed-Banking']:handleTransaction(
 ### `getAccountMoney`
 
 ```lua
-exports['Renewed-Banking']:getAccountMoney(account)
+exports['krgsh_banking']:getAccountMoney(account)
 -- account: string – Job-Name oder Custom-Account-Name
 -- Rückgabe: number (Kontostand) oder false (Account nicht gefunden)
 ```
@@ -160,7 +169,7 @@ exports['Renewed-Banking']:getAccountMoney(account)
 ### `addAccountMoney`
 
 ```lua
-exports['Renewed-Banking']:addAccountMoney(account, amount)
+exports['krgsh_banking']:addAccountMoney(account, amount)
 -- account: string
 -- amount:  number
 -- Rückgabe: true (Erfolg) oder false (Account nicht gefunden)
@@ -173,7 +182,7 @@ exports['Renewed-Banking']:addAccountMoney(account, amount)
 ### `removeAccountMoney`
 
 ```lua
-exports['Renewed-Banking']:removeAccountMoney(account, amount)
+exports['krgsh_banking']:removeAccountMoney(account, amount)
 -- account: string
 -- amount:  number
 -- Rückgabe: true (Erfolg) oder false (nicht genug Guthaben / Account nicht gefunden)
@@ -186,7 +195,7 @@ exports['Renewed-Banking']:removeAccountMoney(account, amount)
 ### `GetJobAccount`
 
 ```lua
-exports['Renewed-Banking']:GetJobAccount(jobName)
+exports['krgsh_banking']:GetJobAccount(jobName)
 -- jobName: string – nicht-leerer Job-Name
 -- Rückgabe: account<table> oder nil
 ```
@@ -198,7 +207,7 @@ Gibt den vollständigen Account-Table aus dem Cache zurück. Wirft einen Fehler 
 ### `CreateJobAccount`
 
 ```lua
-exports['Renewed-Banking']:CreateJobAccount(job, initialBalance)
+exports['krgsh_banking']:CreateJobAccount(job, initialBalance)
 -- job: { name: string, label: string }
 -- initialBalance: number? (optional, Standard: 0)
 -- Rückgabe: account<table>
@@ -210,7 +219,7 @@ Erstellt ein Org-Konto für einen Job (z.B. wenn ein neuer Job zur Laufzeit regi
 
 ```lua
 -- Beispiel:
-local account = exports['Renewed-Banking']:CreateJobAccount(
+local account = exports['krgsh_banking']:CreateJobAccount(
     { name = "mechanic", label = "Mechanic Workshop" },
     10000  -- Startguthaben
 )
@@ -221,7 +230,7 @@ local account = exports['Renewed-Banking']:CreateJobAccount(
 ### `addAccountMember`
 
 ```lua
-exports['Renewed-Banking']:addAccountMember(account, member)
+exports['krgsh_banking']:addAccountMember(account, member)
 -- account: string – Account-ID
 -- member:  string – CitizenID des Spielers
 -- Kein Rückgabewert
@@ -234,7 +243,7 @@ exports['Renewed-Banking']:addAccountMember(account, member)
 ### `removeAccountMember`
 
 ```lua
-exports['Renewed-Banking']:removeAccountMember(account, member)
+exports['krgsh_banking']:removeAccountMember(account, member)
 -- account: string – Account-ID
 -- member:  string – CitizenID des Spielers
 -- Kein Rückgabewert
@@ -245,7 +254,7 @@ exports['Renewed-Banking']:removeAccountMember(account, member)
 ### `getAccountTransactions`
 
 ```lua
-exports['Renewed-Banking']:getAccountTransactions(account)
+exports['krgsh_banking']:getAccountTransactions(account)
 -- account: string – Job-Name, Custom-Account-ID oder CitizenID
 -- Rückgabe: transaction[] oder false
 ```
@@ -257,7 +266,7 @@ Unterstützt sowohl `cachedAccounts` (Org/Shared) als auch `cachedPlayers` (Pers
 ### `changeAccountName`
 
 ```lua
-exports['Renewed-Banking']:changeAccountName(account, newLabel)
+exports['krgsh_banking']:changeAccountName(account, newLabel)
 -- account: string – interne Konto-ID (PK, unverändert)
 -- newLabel: string – neuer Anzeigename (`display_label` in der DB)
 -- Rückgabe: true (Erfolg) oder false

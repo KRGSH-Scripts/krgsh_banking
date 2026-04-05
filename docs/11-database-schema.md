@@ -2,7 +2,7 @@
 
 ## Überblick
 
-Die Resource verwendet zwei MySQL-Tabellen. Das Schema wird sowohl durch `Renewed-Banking.sql` als auch automatisch beim Ressourcen-Start durch `server/main.lua` angelegt (`CREATE TABLE IF NOT EXISTS`).
+Die Resource verwendet zwei MySQL-Tabellen. Das Schema wird sowohl durch `krgsh_banking.sql` als auch automatisch beim Ressourcen-Start durch `server/main.lua` angelegt (`CREATE TABLE IF NOT EXISTS`).
 
 ---
 
@@ -160,14 +160,14 @@ MySQL.transaction.await(query)  -- Array von INSERT-Statements
 
 4. **Keine Fremdschlüssel:** Die Tabellen haben keine referentiellen Integritätsbedingungen. Gelöschte Konten hinterlassen keine Waiseneinträge, da das System Cache-First arbeitet.
 
-5. **Doppelverantwortung:** Tabellen werden sowohl durch `Renewed-Banking.sql` als auch durch `server/main.lua` (`CREATE TABLE IF NOT EXISTS`) angelegt. Dies ist idempotent, aber redundant.
+5. **Doppelverantwortung:** Tabellen werden sowohl durch `krgsh_banking.sql` als auch durch `server/main.lua` (`CREATE TABLE IF NOT EXISTS`) angelegt. Dies ist idempotent, aber redundant.
 
 ---
 
 ## Migrations-Hinweise
 
 Bei Schemaänderungen:
-1. `Renewed-Banking.sql` aktualisieren
+1. `krgsh_banking.sql` aktualisieren
 2. Migration in `server/main.lua` ergänzen (ALTER TABLE im CreateThread)
 3. Cache-Strukturen und JSON-Decoder anpassen
 4. Rückwärtskompatibilität der JSON-Felder sicherstellen (alte Einträge können fehlende Felder haben)

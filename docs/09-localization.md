@@ -80,10 +80,10 @@ locale("comp_transaction", name, "deposited", 500)  -- "Max Mustermann has depos
 ### Server-Fehlermeldungen
 | Key | Wert |
 |---|---|
-| `invalid_account` | `"${renewed_banking} Account not found (%s)"` |
-| `broke_account` | `"${renewed_banking} Account(%s) is too broke with balance of $%s"` |
-| `illegal_action` | `"${renewed_banking} %s has attempted..."` |
-| `existing_account` | `"${renewed_banking} Account %s already exsist"` |
+| `invalid_account` | `"${krgsh_banking} Account not found (%s)"` |
+| `broke_account` | `"${krgsh_banking} Account(%s) is too broke with balance of $%s"` |
+| `illegal_action` | `"${krgsh_banking} %s has attempted..."` |
+| `existing_account` | `"${krgsh_banking} Account %s already exsist"` |
 | `invalid_amount` | `"Invalid amount to %s"` |
 | `not_enough_money` | `"Account does not have enough funds!"` |
 | `comp_transaction` | `"%s has %s $%s"` |
@@ -168,12 +168,12 @@ Dreistufiger Fallback: Server-Locale → `FALLBACK_STRINGS` (deutsche Defaults) 
 
 ---
 
-## `${renewed_banking}` Platzhalter
+## `${krgsh_banking}` Platzhalter
 
-Manche Fehlermeldungen enthalten `${renewed_banking}`, was zu `"^6[^4Renewed-Banking^6]^0"` aufgelöst wird. Dies ist ein FiveM-Konsolenfarb-Code für Server-Logs.
+Manche Fehlermeldungen enthalten `${krgsh_banking}`, was zu `"^6[^4krgsh_banking^6]^0"` aufgelöst wird. Dies ist ein FiveM-Konsolenfarb-Code für Server-Logs.
 
 ```json
-"renewed_banking": "^6[^4Renewed-Banking^6]^0"
+"krgsh_banking": "^6[^4krgsh_banking^6]^0"
 ```
 
 ---
@@ -183,7 +183,7 @@ Manche Fehlermeldungen enthalten `${renewed_banking}`, was zu `"^6[^4Renewed-Ban
 1. `locales/en.json` kopieren nach `locales/xx.json`
 2. Alle Werte übersetzen
 3. `%s`-Platzhalter-Anzahl und -Reihenfolge beibehalten
-4. `${renewed_banking}` unveränderlich lassen
+4. `${krgsh_banking}` unveränderlich lassen
 5. In `fxmanifest.lua` wird `locales/*.json` bereits via `files` eingeschlossen – keine weitere Anpassung nötig
 
 ## Neuen Locale-Key hinzufügen

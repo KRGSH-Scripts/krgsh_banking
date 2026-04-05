@@ -31,7 +31,7 @@ accountManagmentMenu         (Hauptmenü)
 
 ```lua
 lib.registerContext({
-    id = 'renewed_banking_account_management',
+    id = 'krgsh_banking_account_management',
     title = locale("bank_name"),
     position = 'top-right',
     options = {
@@ -84,7 +84,7 @@ Wenn keine Konten vorhanden: Hinweis "Account Not Found – You need to be the c
 
 **PIN am Geldautomaten / in der Bank:** Client `openBankUI` fragt bei `needsBankCardPin` per Dialog ab; Server `krgsh_banking:server:verifyBankCardPin`.
 
-**Back-Navigation:** `menu = "renewed_banking_account_list"` – ox_lib zeigt Zurück-Button
+**Back-Navigation:** `menu = "krgsh_banking_account_list"` – ox_lib zeigt Zurück-Button
 
 ---
 

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Projektweite Arbeitsanweisungen fuer Codex/Agenten in diesem Repository (`krgsh_banking` / Renewed-Banking Resource).
+Projektweite Arbeitsanweisungen fuer Codex/Agenten in diesem Repository (**krgsh_banking**, Fork von [Renewed-Banking](https://github.com/Renewed-Scripts/Renewed-Banking)).
 
 ## Ziel dieses Dokuments
 - Einheitliche Regeln fuer Aenderungen an einer FiveM-Banking-Resource (Lua + NUI + SQL + Locales).
@@ -8,17 +8,17 @@ Projektweite Arbeitsanweisungen fuer Codex/Agenten in diesem Repository (`krgsh_
 - Domänenmodell, Datenfluss und bestehende Patterns dokumentieren, damit neue Features konsistent gebaut werden.
 
 ## Kurzueberblick (Ist-Zustand)
-- Typ: FiveM Resource (Lua 5.4) mit NUI (ausgeliefertes gebautes Svelte-Bundle).
+- Typ: FiveM Resource (Lua 5.4) mit NUI (React/Vite-Source unter `web/`, Build unter `web/public/`).
 - Entry: `fxmanifest.lua`
 - Shared Config: `config.lua`
 - Client: `client/*.lua`
 - Server: `server/*.lua`
-- Datenbank: `Renewed-Banking.sql` (wird zusaetzlich in `server/main.lua` auch automatisch erstellt)
-- UI Assets: `web/public/index.html`, `web/public/global.css`, `web/public/build/*`
+- Datenbank: `krgsh_banking.sql` (wird zusaetzlich in `server/main.lua` auch automatisch erstellt)
+- UI Assets: `web/public/index.html`, gebaute Assets unter `web/public/assets/*`
 - Lokalisierung: `locales/*.json` (22 Sprachen, aktuell gleiche Key-Menge wie `en.json`)
 
 ## Kritische Betriebsregeln (sehr wichtig)
-- Ressourcename nicht umbenennen: Die Serverlogik erwartet explizit `Renewed-Banking` fuer UI-Check (`web/public/build/bundle.js`), sonst stoppt die Resource.
+- **Resource-Ordnername** muss zu `server.cfg` (`ensure …`) passen; NUI nutzt `GetParentResourceName()` fuer Callback-URLs. Beim Start prueft der Server, ob `web/public/index.html` existiert — fehlt der Build, stoppt die Resource.
 - Externe Kompatibilitaet erhalten:
   - `provide 'qb-management'`
   - `provide 'esx_society'`
@@ -32,7 +32,7 @@ Projektweite Arbeitsanweisungen fuer Codex/Agenten in diesem Repository (`krgsh_
 
 ### 2) Konfiguration
 - `config.lua` enthaelt:
-  - Framework-nahe Runtime-Optionen (`renewedMultiJob`, `progressbar`, `currency`)
+  - Framework-nahe Runtime-Optionen (`krgshMultiJob`, `progressbar`, `currency`)
   - ATM-Modelle (`Config.atms`)
   - Bank-Ped/NPC-Definitionen (`Config.peds` inkl. `coords`, `model`, optional `createAccounts`)
 - Neue Config-Werte immer mit sinnvollem Default und Kommentar einfuehren.
@@ -67,11 +67,8 @@ Projektweite Arbeitsanweisungen fuer Codex/Agenten in diesem Repository (`krgsh_
   - `/givecash` Command
 
 ### 5) NUI / Frontend
-- Ausgeliefert wird nur Build-Output:
-  - `web/public/build/bundle.js`
-  - `web/public/build/bundle.css`
-- `web/public/index.html` bindet Google Fonts + globale Styles + Bundle ein.
-- `web/public/global.css` enthaelt globale CSS Variablen/Utility-Basics.
+- Ausgeliefert wird der Vite-Build unter `web/public/` (u. a. `index.html`, `assets/*`).
+- `web/index.html` ist die Dev-Vorlage; fuer FiveM relevant ist `web/public/index.html`.
 - Wenn UI angepasst wird:
   - Build-Artefakte konsistent halten.
   - Keine manuellen Edits in minifiziertem `bundle.js`, wenn Source verfuegbar ist (stattdessen aus Source neu bauen).
@@ -81,7 +78,7 @@ Projektweite Arbeitsanweisungen fuer Codex/Agenten in diesem Repository (`krgsh_
 - `locales/en.json` ist Referenzdatei.
 - Alle Locale-Dateien sollen exakt dieselben Keys enthalten (aktuell konsistent).
 - Neue Texte immer zuerst in `en.json`, dann in alle anderen Locales ergaenzen (mindestens fallback-konforme Platzhalter).
-- Platzhalter (`%s`, `${renewed_banking}`) exakt beibehalten.
+- Platzhalter (`%s`, `${krgsh_banking}`) exakt beibehalten.
 
 ## Domänenmodell (fachliches Modell)
 ### Konto-Typen
@@ -155,7 +152,7 @@ Hinweis: Shared-Accounts werden technisch ebenfalls als `org`-Typ an die UI geli
 ### UI Oeffnen
 1. Interaktion via ATM oder Bank-Ped (`ox_target`).
 2. Progressbar/Animation.
-3. Client ruft `renewed-banking:server:initalizeBanking` auf.
+3. Client ruft `krgsh_banking:server:initalizeBanking` auf.
 4. Server liefert aggregierte Kontoliste (personal + job/gang + shared).
 5. NUI rendert Konten und Transaktionen.
 
@@ -173,7 +170,7 @@ Hinweis: Shared-Accounts werden technisch ebenfalls als `org`-Typ an die UI geli
 - Lua mit gemischter Benennung:
   - `camelCase` bei vielen lokalen Funktionen/Variablen (`getBankData`, `cachedAccounts`)
   - `PascalCase` bei frameworknahen Hilfsfunktionen (`GetPlayerObject`, `AddMoney`)
-  - Event/Callback-Namen mit `Renewed-Banking:*`
+  - Event/Callback-Namen mit `krgsh_banking:*`
 - Imperativer Stil mit fruehen Returns.
 - Tabellen als zentrale Datenstruktur (statt Klassen).
 - Serverseitiger Cache als Performance-Optimierung.
@@ -233,8 +230,8 @@ Hinweis: Shared-Accounts werden technisch ebenfalls als `org`-Typ an die UI geli
 
 ### API-/Event-Design
 - Neue NUI/Net Events nach Schema benennen:
-  - `Renewed-Banking:client:*`
-  - `Renewed-Banking:server:*`
+  - `krgsh_banking:client:*`
+  - `krgsh_banking:server:*`
 - Event-Payloads als Tabellen mit stabilen Feldnamen statt positional args, ausser bei bestehenden APIs.
 - Rueckgabestrukturen fuer UI/Exports dokumentieren (Feldnamen, Typen, optionale Felder).
 
@@ -268,7 +265,7 @@ Hinweis: Shared-Accounts werden technisch ebenfalls als `org`-Typ an die UI geli
 ## Bekannte Besonderheiten / Stolperfallen
 - Schreibweise `initalizeBanking` ist historisch inkonsistent (nicht ohne Kompatibilitaetspruefung umbenennen).
 - `frozen`/`isFrozen` ist teilweise vorbereitet, aber nicht durchgaengig als harte Business-Regel erzwungen.
-- Frontend-Source ist im aktuellen Repo nicht enthalten; nur gebaute Assets liegen vor.
+- Frontend-Source liegt unter `web/src`; nach Aenderungen Build nach `web/public/` erzeugen (siehe `build.sh` / README).
 - `server/main.lua` erstellt Tabellen zusaetzlich zur SQL-Datei automatisch (doppelte Verantwortlichkeit beachten).
 
 ## Wenn du neue Features baust

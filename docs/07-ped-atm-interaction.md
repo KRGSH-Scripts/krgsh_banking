@@ -30,7 +30,7 @@ Jeder Eintrag kann entweder ein einfacher Model-Hash oder eine Table mit optiona
 
 ```lua
 exports.ox_target:addModel(model, {{
-    name  = 'renewed_banking_openui',
+    name  = 'krgsh_banking_openui',
     event = 'krgsh_banking:client:openBankUI',
     icon  = 'fas fa-money-check',
     label = locale('view_bank'),
@@ -48,7 +48,7 @@ Duplikate werden durch eine `addedModels`-Map verhindert.
 
 ```lua
 AddEventHandler('onResourceStop', function(resource)
-    exports.ox_target:removeModel(atmTargetModels, {'renewed_banking_openui'})
+    exports.ox_target:removeModel(atmTargetModels, {'krgsh_banking_openui'})
     DeletePeds()
 end)
 ```
@@ -118,7 +118,7 @@ end
 ```lua
 -- Option 1: Konto verwalten (nur wenn createAccounts = true)
 {
-    name        = 'renewed_banking_accountmng',
+    name        = 'krgsh_banking_accountmng',
     event       = 'krgsh_banking:client:accountManagmentMenu',
     canInteract = function(_, distance)
         return distance < 4.5 and pedConfig.createAccounts
@@ -126,7 +126,7 @@ end
 }
 -- Option 2: Bank öffnen (immer)
 {
-    name        = 'renewed_banking_openui',
+    name        = 'krgsh_banking_openui',
     event       = 'krgsh_banking:client:openBankUI',
     canInteract = function(_, distance)
         return distance < 4.5
