@@ -117,5 +117,8 @@
     "create_account_invalid_name": "Ungültiger Kontoname (1–100 Zeichen).",
     "create_account_failed": "Konto konnte nicht angelegt werden.",
     "create_account_rate_limit": "Bitte kurz warten, bevor du ein weiteres Konto anlegst.",
-    "change_account_display_name": "Anzeigename"
+    "change_account_display_name": "Anzeigename",
+    "transaction_processing": "Transaktion wird ausgeführt…",
+    "notify_deposit_cash": "$%s wurden aus deinem Bargeld abgebucht (Einzahlung).",
+    "notify_withdraw_cash": "$%s wurden deinem Bargeld gutgeschrieben (Auszahlung)."
 }
