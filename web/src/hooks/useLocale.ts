@@ -102,6 +102,15 @@ const FALLBACK: Record<string, string> = {
   journal_rows_range: '{0}–{1} von {2}',
   recent_activity_title: 'Letzte Aktivitaet',
   kpi_last_booking: 'Letzte Buchung',
+  journal_filter_btn: 'Filter',
+  journal_filter_title: 'Buchungen filtern',
+  journal_filter_reset_all: 'Alle zuruecksetzen',
+  journal_filter_chip_period: 'Zeitraum',
+  journal_filter_chip_types: 'Typen',
+  journal_filter_chip_parties: 'Beteiligte',
+  journal_filter_chip_text: 'Text',
+  journal_filter_active_label: 'Aktiv:',
+  journal_filter_remove: 'Entfernen',
 };
 
 export function useLocale() {
