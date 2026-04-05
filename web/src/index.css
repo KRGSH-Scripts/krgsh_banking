@@ -11,6 +11,8 @@ body,
 /* FiveM NUI: Seiten-Chrome transparent, Spiel bleibt sichtbar (Mantine setzt body sonst dunkel) */
 /* CEF: color-scheme dark kann eine undurchsichtige „Canvas“-Fläche erzeugen; transparent als rgba. */
 html {
+  /* 16px ÷ 1920px × 100 = 0.8333vw → 16px at 1920 wide, 32px at 3840 wide */
+  font-size: clamp(12px, 0.8333vw, 32px);
   color-scheme: normal !important;
   background: rgba(0, 0, 0, 0) !important;
   background-color: rgba(0, 0, 0, 0) !important;
@@ -136,14 +138,14 @@ body {
 /* Flow ring widget */
 .flow-ring-wrap {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 5rem;
+  height: 5rem;
   flex-shrink: 0;
 }
 
 /* ─── Custom scrollbar ──────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 0.25rem;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
