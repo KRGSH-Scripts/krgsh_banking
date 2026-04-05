@@ -1,0 +1,101 @@
+/* Global base styles for FiveM NUI */
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* FiveM NUI: page chrome must be transparent so the game shows through */
+html {
+  background: transparent;
+}
+
+body {
+  overflow: hidden;
+  background: transparent;
+}
+
+/* ─── Dynamic Bank Theme CSS Variables ────────────────────────────────────── */
+:root {
+  --rb-bg: #050505;
+  --rb-bg-2: #0c0c0c;
+  --rb-surface: rgba(255, 255, 255, 0.035);
+  --rb-surface-2: rgba(255, 255, 255, 0.02);
+  --rb-card: rgba(14, 14, 14, 0.94);
+  --rb-border: rgba(255, 255, 255, 0.09);
+  --rb-text: #e5e7eb;
+  --rb-text-muted: #9ca3af;
+  --rb-text-soft: #6b7280;
+  --rb-accent: #f472b6;
+  --rb-accent-2: #db2777;
+  --rb-accent-contrast: #ffffff;
+  --rb-glow: rgba(244, 114, 182, 0.32);
+  --rb-danger: #fb7185;
+  --rb-warning: #fbbf24;
+  --rb-flow-out: rgba(251, 113, 133, 0.28);
+  --rb-inflow: #34d399;
+  --rb-inflow-strong: #6ee7b7;
+  --rb-inflow-muted-bg: rgba(52, 211, 153, 0.12);
+  --rb-inflow-muted-border: rgba(52, 211, 153, 0.22);
+  --rb-divider: rgba(255, 255, 255, 0.085);
+  --rb-fill-subtle: rgba(255, 255, 255, 0.045);
+  --rb-fill-raised: rgba(255, 255, 255, 0.07);
+  --rb-chip-bg: rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Mantine Overrides for NUI Dark Mode ──────────────────────────────────── */
+[data-mantine-color-scheme] {
+  background-color: transparent !important;
+}
+
+/* Transaction in/out badges */
+.tx-badge-in {
+  color: var(--rb-inflow) !important;
+  background: var(--rb-inflow-muted-bg) !important;
+  border-color: var(--rb-inflow-muted-border) !important;
+}
+
+.tx-badge-out {
+  color: var(--rb-danger) !important;
+  background: rgba(251, 113, 133, 0.12) !important;
+  border-color: rgba(251, 113, 133, 0.22) !important;
+}
+
+/* Amount colours */
+.amount-in {
+  color: var(--rb-inflow);
+  font-weight: 700;
+}
+.amount-out {
+  color: var(--rb-danger);
+  font-weight: 700;
+}
+
+/* Account card selected state */
+.account-card-active {
+  outline: 2px solid var(--rb-accent) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Flow ring widget */
+.flow-ring-wrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+/* ─── Custom scrollbar ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--rb-border);
+  border-radius: 4px;
+}
