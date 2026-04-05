@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import {
+  Box,
   Stack,
   Tabs,
   rem,
@@ -160,32 +161,61 @@ function SchedulesPage() {
   }
 
   return (
-    <Stack gap={0} p={rem(24)} style={{ minHeight: '100%' }}>
-      <Tabs
-        value="schedules"
-        onChange={(v) => {
-          if (v === 'overview') void navigate({ to: '/overview' });
-          if (v === 'transactions') void navigate({ to: '/transactions' });
-        }}
-        mb={rem(20)}
-        styles={{
-          tab: {
-            color: 'var(--rb-text-muted)',
-            '&[data-active]': {
-              color: 'var(--rb-accent)',
-              borderBottomColor: 'var(--rb-accent)',
-            },
-          },
-          list: { borderBottomColor: 'var(--rb-border)' },
+    <Box
+      style={{
+        flex: 1,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      <Box
+        style={{
+          flexShrink: 0,
+          paddingLeft: rem(24),
+          paddingRight: rem(24),
+          paddingTop: rem(24),
         }}
       >
-        <Tabs.List>
-          <Tabs.Tab value="overview">{t('dashboard', 'Kontouebersicht')}</Tabs.Tab>
-          <Tabs.Tab value="transactions">{t('transactionLog', 'Buchungen')}</Tabs.Tab>
-          <Tabs.Tab value="schedules">{t('pi_nav', 'Zahlungsplaene')}</Tabs.Tab>
-        </Tabs.List>
-      </Tabs>
+        <Tabs
+          value="schedules"
+          onChange={(v) => {
+            if (v === 'overview') void navigate({ to: '/overview' });
+            if (v === 'transactions') void navigate({ to: '/transactions' });
+          }}
+          mb={rem(20)}
+          styles={{
+            tab: {
+              color: 'var(--rb-text-muted)',
+              '&[data-active]': {
+                color: 'var(--rb-accent)',
+                borderBottomColor: 'var(--rb-accent)',
+              },
+            },
+            list: { borderBottomColor: 'var(--rb-border)' },
+          }}
+        >
+          <Tabs.List>
+            <Tabs.Tab value="overview">{t('dashboard', 'Kontouebersicht')}</Tabs.Tab>
+            <Tabs.Tab value="transactions">{t('transactionLog', 'Buchungen')}</Tabs.Tab>
+            <Tabs.Tab value="schedules">{t('pi_nav', 'Zahlungsplaene')}</Tabs.Tab>
+          </Tabs.List>
+        </Tabs>
+      </Box>
 
+      <Box
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          paddingLeft: rem(24),
+          paddingRight: rem(24),
+          paddingBottom: rem(24),
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
       <Text fw={700} size="lg" mb={rem(8)} style={{ fontFamily: 'var(--mantine-font-family-headings)' }}>
         {t('pi_title', 'Dauerauftraege & Lastschriften')}
       </Text>
@@ -347,6 +377,7 @@ function SchedulesPage() {
           ))
         )}
       </Stack>
-    </Stack>
+      </Box>
+    </Box>
   );
 }
