@@ -143,10 +143,11 @@ end
 
 local function inventoryCardIdsForAccount(src, accountId)
     local set = {}
+    local want = tostring(accountId)
     local items = FindBankCardItems(src, Config.bankCardItem or 'bank_card')
     for i = 1, #items do
         local m = items[i].metadata or {}
-        if m.accountId == accountId and type(m.cardId) == 'string' and m.cardId ~= '' then
+        if m.accountId == want and type(m.cardId) == 'string' and m.cardId ~= '' then
             set[m.cardId] = true
         end
     end
@@ -262,7 +263,7 @@ local function getAtmBankPayload(source, activeAccountId, activeCardId)
         local m = items[i].metadata or {}
         local aid = m.accountId
         local cidCard = m.cardId
-        if type(aid) == 'string' and aid ~= '' and type(cidCard) == 'string' and cidCard ~= '' then
+        if aid and cidCard and aid ~= '' and cidCard ~= '' then
             local key = aid .. '\0' .. cidCard
             if not seen[key] then
                 local acc = cachedAccounts[aid]
@@ -373,7 +374,7 @@ local function mergeSharedAccountIdSet(src, cid)
     for i = 1, #items do
         local m = items[i].metadata or {}
         local aid = m.accountId
-        if aid and cachedAccounts[aid] and cachedAccounts[aid].creator then
+        if type(aid) == 'string' and aid ~= '' and cachedAccounts[aid] and cachedAccounts[aid].creator then
             set[aid] = true
         end
     end
@@ -1121,7 +1122,7 @@ local function findHeldBankCardRow(source, accountId, cardId, slot)
     local items = FindBankCardItems(source, Config.bankCardItem or 'bank_card')
     for i = 1, #items do
         local m = items[i].metadata or {}
-        if m.accountId == accountId and m.cardId == cardId and tostring(items[i].slot) == tostring(slot) then
+        if tostring(m.accountId) == tostring(accountId) and tostring(m.cardId) == tostring(cardId) and tostring(items[i].slot) == tostring(slot) then
             return items[i], m
         end
     end
@@ -1188,7 +1189,7 @@ lib.callback.register('krgsh_banking:server:listBankCards', function(source)
     for i = 1, #items do
         local m = items[i].metadata or {}
         local aid, cId = m.accountId, m.cardId
-        if type(aid) == 'string' and type(cId) == 'string' and aid ~= '' and cId ~= '' then
+        if aid and cId and aid ~= '' and cId ~= '' then
             local reg = getRegistryCardEntry(source, aid, cId)
             if reg then
                 local kind = (aid == cid) and 'personal' or 'shared'

@@ -13,6 +13,50 @@ local function started(name)
     return GetResourceState(name) == 'started'
 end
 
+--- Merge item metadata for bank cards: nil-safe, snake_case aliases, string ids for comparisons.
+---@param rawMeta any
+---@param row table|nil
+---@return table
+local function coalesceBankCardMetadata(rawMeta, row)
+    row = type(row) == 'table' and row or nil
+    local m = {}
+    if type(rawMeta) == 'table' then
+        for k, v in pairs(rawMeta) do
+            m[k] = v
+        end
+    elseif row and type(row.info) == 'table' then
+        for k, v in pairs(row.info) do
+            m[k] = v
+        end
+    end
+    local aid = m.accountId or m.account_id
+    local cid = m.cardId or m.card_id
+    if aid ~= nil and aid ~= '' then
+        m.accountId = tostring(aid)
+    else
+        m.accountId = nil
+    end
+    if cid ~= nil and cid ~= '' then
+        m.cardId = tostring(cid)
+    else
+        m.cardId = nil
+    end
+    return m
+end
+
+--- Jaksam slot may be number or string (e.g. stash keys); getItemFromSlot needs numeric slot index.
+---@param slot any
+---@return any
+local function jaksamResolveSlotId(slot)
+    local n = tonumber(slot)
+    if n then return n end
+    if type(slot) == 'string' then
+        local d = slot:match('%d+$') or slot:match('%d+')
+        if d then return tonumber(d) end
+    end
+    return slot
+end
+
 ---@param src number
 ---@param itemName string
 ---@return { metadata: table, slot: any, count: number }[]
@@ -24,11 +68,12 @@ local function findBankCardsOx(src, itemName)
     end)
     if not ok or not search then return out end
     for slot, data in pairs(search) do
-        if type(data) == 'table' and data.metadata then
+        if type(data) == 'table' then
+            local meta = coalesceBankCardMetadata(data.metadata, data)
             out[#out + 1] = {
                 slot = slot,
-                count = data.count or 1,
-                metadata = data.metadata,
+                count = data.count or data.amount or 1,
+                metadata = meta,
             }
         end
     end
@@ -47,11 +92,12 @@ local function findBankCardsQb(src, itemName)
     local items = Player.PlayerData and Player.PlayerData.items
     if type(items) ~= 'table' then return out end
     for slot, it in pairs(items) do
-        if type(it) == 'table' and it.name == itemName and type(it.info) == 'table' then
+        if type(it) == 'table' and it.name == itemName then
+            local meta = coalesceBankCardMetadata(it.info, it)
             out[#out + 1] = {
                 slot = slot,
                 count = it.amount or it.count or 1,
-                metadata = it.info,
+                metadata = meta,
             }
         end
     end
@@ -64,17 +110,39 @@ end
 local function findBankCardsJaksam(src, itemName)
     local out = {}
     if not started('jaksam_inventory') then return out end
-    local ok, rows = pcall(function()
-        return exports['jaksam_inventory']:getItemsByName(src, itemName)
+    local rows
+    local ok = pcall(function()
+        rows = exports['jaksam_inventory']:getItemsByName(src, itemName)
     end)
-    if not ok or type(rows) ~= 'table' then return out end
-    for _, row in pairs(rows) do
-        if type(row) == 'table' and type(row.metadata) == 'table' then
-            out[#out + 1] = {
-                slot = row.slot,
-                count = row.count or row.amount or 1,
-                metadata = row.metadata,
-            }
+    if (not ok or type(rows) ~= 'table') and type(src) == 'number' then
+        pcall(function()
+            local r2 = exports['jaksam_inventory']:getItemsByName(tostring(src), itemName)
+            if type(r2) == 'table' and (#r2 > 0 or next(r2)) then
+                rows = r2
+            end
+        end)
+    end
+    if type(rows) ~= 'table' then return out end
+
+    local function handleRow(row)
+        if type(row) ~= 'table' then return end
+        if row.name and row.name ~= itemName then return end
+        local meta = coalesceBankCardMetadata(row.metadata, row)
+        out[#out + 1] = {
+            slot = row.slot,
+            count = row.count or row.amount or 1,
+            metadata = meta,
+        }
+    end
+
+    local n = #rows
+    if n > 0 then
+        for i = 1, n do
+            handleRow(rows[i])
+        end
+    else
+        for _, row in pairs(rows) do
+            handleRow(row)
         end
     end
     return out
@@ -162,8 +230,21 @@ function PatchBankCardItemMetadata(src, itemName, slot, patch)
         return ok
     elseif p == 'jaksam_inventory' then
         if not started('jaksam_inventory') then return false end
+        local slotId = jaksamResolveSlotId(slot)
+        if slotId == nil then return false end
+        local item
+        pcall(function()
+            item = exports['jaksam_inventory']:getItemFromSlot(src, slotId)
+        end)
+        if type(item) ~= 'table' or item.name ~= itemName then return false end
+        local meta = type(item.metadata) == 'table' and item.metadata or {}
+        local merged = {}
+        for k, v in pairs(meta) do merged[k] = v end
+        for k, v in pairs(patch) do merged[k] = v end
         local ok = pcall(function()
-            if exports['jaksam_inventory'].setItemMetadata then
+            if exports['jaksam_inventory'].setItemMetadataInSlot then
+                exports['jaksam_inventory']:setItemMetadataInSlot(src, slotId, merged)
+            elseif exports['jaksam_inventory'].setItemMetadata then
                 exports['jaksam_inventory']:setItemMetadata(src, slot, patch)
             elseif exports['jaksam_inventory'].updateItemMetadata then
                 exports['jaksam_inventory']:updateItemMetadata(src, slot, patch)
@@ -203,7 +284,8 @@ function RemoveBankCardFromSlot(src, itemName, slot, count)
         if not started('jaksam_inventory') then return false end
         local ok = pcall(function()
             if exports['jaksam_inventory'].removeItem then
-                exports['jaksam_inventory']:removeItem(src, itemName, count, slot)
+                -- Signature: removeItem(inventoryId, itemName, amount, metadata?, slotId?)
+                exports['jaksam_inventory']:removeItem(src, itemName, count, nil, jaksamResolveSlotId(slot))
             end
         end)
         return ok
