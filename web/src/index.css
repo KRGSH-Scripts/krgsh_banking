@@ -8,14 +8,20 @@ body,
   padding: 0;
 }
 
-/* FiveM NUI: page chrome must be transparent so the game shows through */
+/* FiveM NUI: Seiten-Chrome transparent, Spiel bleibt sichtbar (Mantine setzt body sonst dunkel) */
 html {
-  background: transparent;
+  background: transparent !important;
 }
 
 body {
   overflow: hidden;
-  background: transparent;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+#root {
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 /* ─── Dynamic Bank Theme CSS Variables ────────────────────────────────────── */
