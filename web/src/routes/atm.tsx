@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Stack, rem } from '@mantine/core';
+import { Stack, Transition, rem } from '@mantine/core';
 
 import { useAccounts } from '../hooks/useAccounts';
 import { useLocale } from '../hooks/useLocale';
@@ -23,10 +23,22 @@ function AtmPage() {
 
   return (
     <Stack gap={rem(20)} p={rem(24)} style={{ minHeight: '100%' }}>
-      <AtmHero account={selectedAccount} t={t} />
-      <QuickActions selectedAccount={selectedAccount} t={t} />
-      <AtmKeypad selectedAccount={selectedAccount} t={t} />
-      <AtmRecent account={selectedAccount} t={t} />
+      <Transition
+        key={selectedAccount?.id ?? 'none'}
+        mounted
+        transition="fade"
+        duration={220}
+        timingFunction="cubic-bezier(0.4, 0, 0.2, 1)"
+      >
+        {(fadeStyles) => (
+          <Stack gap={rem(20)} style={fadeStyles}>
+            <AtmHero account={selectedAccount} t={t} />
+            <QuickActions selectedAccount={selectedAccount} t={t} />
+            <AtmKeypad selectedAccount={selectedAccount} t={t} />
+            <AtmRecent account={selectedAccount} t={t} />
+          </Stack>
+        )}
+      </Transition>
     </Stack>
   );
 }

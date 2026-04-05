@@ -117,5 +117,8 @@
     "create_account_invalid_name": "Invalid account name (1–100 characters).",
     "create_account_failed": "Could not create account. Try again.",
     "create_account_rate_limit": "Please wait a moment before creating another account.",
-    "change_account_display_name": "Display name"
+    "change_account_display_name": "Display name",
+    "transaction_processing": "Processing transaction…",
+    "notify_deposit_cash": "$%s was taken from your cash (deposit successful).",
+    "notify_withdraw_cash": "$%s was added to your cash (withdrawal successful)."
 }

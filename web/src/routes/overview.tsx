@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Stack, Tabs, rem } from '@mantine/core';
+import { Stack, Tabs, Transition, rem } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
 
 import { useAccounts } from '../hooks/useAccounts';
@@ -50,13 +50,23 @@ function OverviewPage() {
         </Tabs.List>
       </Tabs>
 
-      <Stack gap={rem(20)}>
-        <HeroSection account={selectedAccount} accounts={accounts} t={t} />
-        <QuickActions selectedAccount={selectedAccount} t={t} />
-        <KpiGrid accounts={accounts} t={t} />
-        <AnalyticsChart account={selectedAccount} t={t} />
-        <RecentActivity account={selectedAccount} t={t} />
-      </Stack>
+      <Transition
+        key={selectedAccount?.id ?? 'none'}
+        mounted
+        transition="fade"
+        duration={220}
+        timingFunction="cubic-bezier(0.4, 0, 0.2, 1)"
+      >
+        {(fadeStyles) => (
+          <Stack gap={rem(20)} style={fadeStyles}>
+            <HeroSection account={selectedAccount} accounts={accounts} t={t} />
+            <QuickActions selectedAccount={selectedAccount} t={t} />
+            <KpiGrid accounts={accounts} t={t} />
+            <AnalyticsChart account={selectedAccount} t={t} />
+            <RecentActivity account={selectedAccount} t={t} />
+          </Stack>
+        )}
+      </Transition>
     </Stack>
   );
 }
