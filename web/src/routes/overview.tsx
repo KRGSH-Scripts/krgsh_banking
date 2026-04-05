@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Stack, Tabs, Transition, rem } from '@mantine/core';
+import { Box, Tabs, Transition, rem } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
 
 import { useAccounts } from '../hooks/useAccounts';
@@ -26,50 +26,82 @@ function OverviewPage() {
   const navigate = useNavigate();
 
   return (
-    <Stack gap={0} p={rem(24)} style={{ minHeight: '100%' }}>
-      {/* Tab bar */}
-      <Tabs
-        value="overview"
-        onChange={(v) => {
-          if (v === 'transactions') void navigate({ to: '/transactions' });
-          if (v === 'schedules') void navigate({ to: '/schedules' });
+    <Box
+      style={{
+        flex: 1,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      <Box
+        style={{
+          flexShrink: 0,
+          paddingLeft: rem(24),
+          paddingRight: rem(24),
+          paddingTop: rem(24),
         }}
-        mb={rem(20)}
-        styles={{
-          tab: {
-            color: 'var(--rb-text-muted)',
-            '&[data-active]': {
-              color: 'var(--rb-accent)',
-              borderBottomColor: 'var(--rb-accent)',
+      >
+        <Tabs
+          value="overview"
+          onChange={(v) => {
+            if (v === 'transactions') void navigate({ to: '/transactions' });
+            if (v === 'schedules') void navigate({ to: '/schedules' });
+          }}
+          mb={rem(20)}
+          styles={{
+            tab: {
+              color: 'var(--rb-text-muted)',
+              '&[data-active]': {
+                color: 'var(--rb-accent)',
+                borderBottomColor: 'var(--rb-accent)',
+              },
             },
-          },
-          list: { borderBottomColor: 'var(--rb-border)' },
+            list: { borderBottomColor: 'var(--rb-border)' },
+          }}
+        >
+          <Tabs.List>
+            <Tabs.Tab value="overview">{t('dashboard', 'Kontouebersicht')}</Tabs.Tab>
+            <Tabs.Tab value="transactions">{t('transactionLog', 'Buchungen')}</Tabs.Tab>
+            {!atm ? <Tabs.Tab value="schedules">{t('pi_nav', 'Zahlungsplaene')}</Tabs.Tab> : null}
+          </Tabs.List>
+        </Tabs>
+      </Box>
+
+      <Box
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          paddingLeft: rem(24),
+          paddingRight: rem(24),
+          paddingBottom: rem(24),
+          WebkitOverflowScrolling: 'touch',
         }}
       >
-        <Tabs.List>
-          <Tabs.Tab value="overview">{t('dashboard', 'Kontouebersicht')}</Tabs.Tab>
-          <Tabs.Tab value="transactions">{t('transactionLog', 'Buchungen')}</Tabs.Tab>
-          {!atm ? <Tabs.Tab value="schedules">{t('pi_nav', 'Zahlungsplaene')}</Tabs.Tab> : null}
-        </Tabs.List>
-      </Tabs>
-
-      <Transition
-        key={selectedAccount?.id ?? 'none'}
-        mounted
-        transition="fade"
-        duration={220}
-        timingFunction="cubic-bezier(0.4, 0, 0.2, 1)"
-      >
-        {(fadeStyles) => (
-          <Stack gap={rem(20)} style={fadeStyles}>
-            <HeroSection account={selectedAccount} accounts={accounts} t={t} />
-            <QuickActions selectedAccount={selectedAccount} t={t} />
-        <KpiGrid accounts={accounts} selectedAccount={selectedAccount} t={t} />
-        <AnalyticsChart account={selectedAccount} t={t} />
-        <RecentActivity account={selectedAccount} allAccounts={accounts} t={t} />
-          </Stack>
-        )}
-      </Transition>
-    </Stack>
+        <Transition
+          key={selectedAccount?.id ?? 'none'}
+          mounted
+          transition="fade"
+          duration={220}
+          timingFunction="cubic-bezier(0.4, 0, 0.2, 1)"
+        >
+          {(fadeStyles) => (
+            <Box
+              component="div"
+              style={{ ...fadeStyles, display: 'flex', flexDirection: 'column', gap: rem(20) }}
+            >
+              <HeroSection account={selectedAccount} accounts={accounts} t={t} />
+              <QuickActions selectedAccount={selectedAccount} t={t} />
+              <KpiGrid accounts={accounts} selectedAccount={selectedAccount} t={t} />
+              <AnalyticsChart account={selectedAccount} t={t} />
+              <RecentActivity account={selectedAccount} allAccounts={accounts} t={t} />
+            </Box>
+          )}
+        </Transition>
+      </Box>
+    </Box>
   );
 }

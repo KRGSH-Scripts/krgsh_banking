@@ -51,9 +51,11 @@ function RoutedOutlet() {
         <Box
           style={{
             ...styles,
-            position: 'relative',
+            flex: 1,
             minHeight: 0,
-            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
           }}
         >
           <Outlet />
@@ -249,6 +251,7 @@ function RootLayout() {
                 ) : null}
 
                 <AppShell
+                  className="rb-banking-shell"
                   header={{ height: rem(64) }}
                   navbar={
                     !atm
@@ -261,8 +264,6 @@ function RootLayout() {
                       minHeight: 0,
                       background: 'transparent',
                     },
-                    main: { minHeight: 0 },
-                    navbar: { minHeight: 0 },
                   }}
                   style={{ background: 'transparent', flex: 1, minHeight: 0 }}
                 >
@@ -299,10 +300,8 @@ function RootLayout() {
                   <AppShell.Main
                     style={{
                       background: 'var(--rb-bg)',
-                      overflowY: 'auto',
-                      overflowX: 'hidden',
+                      overflow: 'hidden',
                       minHeight: 0,
-                      flex: 1,
                     }}
                   >
                     <RoutedOutlet />
