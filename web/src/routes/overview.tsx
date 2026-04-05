@@ -61,9 +61,9 @@ function OverviewPage() {
           <Stack gap={rem(20)} style={fadeStyles}>
             <HeroSection account={selectedAccount} accounts={accounts} t={t} />
             <QuickActions selectedAccount={selectedAccount} t={t} />
-            <KpiGrid accounts={accounts} t={t} />
-            <AnalyticsChart account={selectedAccount} t={t} />
-            <RecentActivity account={selectedAccount} t={t} />
+        <KpiGrid accounts={accounts} selectedAccount={selectedAccount} t={t} />
+        <AnalyticsChart account={selectedAccount} t={t} />
+        <RecentActivity account={selectedAccount} allAccounts={accounts} t={t} />
           </Stack>
         )}
       </Transition>

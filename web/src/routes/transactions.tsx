@@ -3,6 +3,7 @@ import { Stack, Tabs, rem } from '@mantine/core';
 
 import { useAccounts } from '../hooks/useAccounts';
 import { useLocale } from '../hooks/useLocale';
+import { useBankingStore } from '../store/bankingStore';
 
 import TransactionTable from '../components/Transactions/TransactionTable';
 
@@ -12,6 +13,9 @@ export const Route = createFileRoute('/transactions')({
 
 function TransactionsPage() {
   const { data: accounts = [] } = useAccounts();
+  const selectedAccountId = useBankingStore((s) => s.selectedAccountId);
+  const selectedAccount =
+    accounts.find((a) => a.id === selectedAccountId) ?? accounts[0] ?? null;
   const { t } = useLocale();
   const navigate = useNavigate();
 
@@ -41,7 +45,7 @@ function TransactionsPage() {
         </Tabs.List>
       </Tabs>
 
-      <TransactionTable accounts={accounts} t={t} />
+      <TransactionTable account={selectedAccount} allAccounts={accounts} t={t} />
     </Stack>
   );
 }
