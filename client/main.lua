@@ -152,6 +152,44 @@ end)
 
 RegisterCommand('closeBankUI', function() nuiHandler(false) end, false)
 
+--- NUI callbacks sofort registrieren (nicht erst im ATM-CreateThread), sonst fehlen sie beim ersten fetch.
+local bankActions = {'deposit', 'withdraw', 'transfer'}
+for k = 1, #bankActions do
+    local action = bankActions[k]
+    RegisterNUICallback(action, function(data, cb)
+        local newTransaction = lib.callback.await('krgsh_banking:server:' .. action, false, data)
+        cb(newTransaction)
+    end)
+end
+
+RegisterNUICallback('createAccount', function(data, cb)
+    local payload = lib.callback.await('krgsh_banking:server:createSharedAccount', false, {
+        displayName = type(data) == 'table' and data.displayName or nil
+    })
+    cb(payload or false)
+end)
+
+RegisterNUICallback('listPaymentInstructions', function(data, cb)
+    local atm = type(data) == 'table' and data.atm == true
+    local list = lib.callback.await('krgsh_banking:server:listPaymentInstructions', false, { atm = atm })
+    cb(list or {})
+end)
+
+RegisterNUICallback('createStandingOrder', function(data, cb)
+    local payload = lib.callback.await('krgsh_banking:server:createStandingOrder', false, type(data) == 'table' and data or {})
+    cb(payload or { success = false })
+end)
+
+RegisterNUICallback('updatePaymentInstruction', function(data, cb)
+    local payload = lib.callback.await('krgsh_banking:server:updatePaymentInstruction', false, type(data) == 'table' and data or {})
+    cb(payload or { success = false })
+end)
+
+RegisterNUICallback('respondMandate', function(data, cb)
+    local payload = lib.callback.await('krgsh_banking:server:respondMandate', false, type(data) == 'table' and data or {})
+    cb(payload or { success = false })
+end)
+
 RegisterNetEvent('krgsh_banking:client:pendingMandate', function()
     lib.notify({
         title = locale('bank_name'),
@@ -160,38 +198,8 @@ RegisterNetEvent('krgsh_banking:client:pendingMandate', function()
     })
 end)
 
-local bankActions = {'deposit', 'withdraw', 'transfer'}
 local atmTargetModels = {}
 CreateThread(function ()
-    for k=1, #bankActions do
-        RegisterNUICallback(bankActions[k], function(data, cb)
-            local newTransaction = lib.callback.await('krgsh_banking:server:'..bankActions[k], false, data)
-            cb(newTransaction)
-        end)
-    end
-    RegisterNUICallback('createAccount', function(data, cb)
-        local payload = lib.callback.await('krgsh_banking:server:createSharedAccount', false, {
-            displayName = type(data) == 'table' and data.displayName or nil
-        })
-        cb(payload or false)
-    end)
-    RegisterNUICallback('listPaymentInstructions', function(data, cb)
-        local atm = type(data) == 'table' and data.atm == true
-        local list = lib.callback.await('krgsh_banking:server:listPaymentInstructions', false, { atm = atm })
-        cb(list or {})
-    end)
-    RegisterNUICallback('createStandingOrder', function(data, cb)
-        local payload = lib.callback.await('krgsh_banking:server:createStandingOrder', false, type(data) == 'table' and data or {})
-        cb(payload or { success = false })
-    end)
-    RegisterNUICallback('updatePaymentInstruction', function(data, cb)
-        local payload = lib.callback.await('krgsh_banking:server:updatePaymentInstruction', false, type(data) == 'table' and data or {})
-        cb(payload or { success = false })
-    end)
-    RegisterNUICallback('respondMandate', function(data, cb)
-        local payload = lib.callback.await('krgsh_banking:server:respondMandate', false, type(data) == 'table' and data or {})
-        cb(payload or { success = false })
-    end)
     local addedModels = {}
     for i = 1, #Config.atms do
         local atmEntry = Config.atms[i]
