@@ -6,6 +6,7 @@ interface BankingState {
   visible: boolean;
   loading: boolean;
   atm: boolean;
+  canCreateAccounts: boolean;
   selectedAccountId: string | null;
   locale: Record<string, string>;
   currency: string;
@@ -14,7 +15,12 @@ interface BankingState {
   modal: ModalState | null;
 
   // Actions
-  setVisible: (visible: boolean, atm: boolean, theme?: Partial<BankTheme>) => void;
+  setVisible: (
+    visible: boolean,
+    atm: boolean,
+    theme?: Partial<BankTheme>,
+    canCreateAccounts?: boolean,
+  ) => void;
   setLoading: (loading: boolean) => void;
   setSelectedAccountId: (id: string | null) => void;
   setLocale: (locale: Record<string, string>, currency: string) => void;
@@ -30,6 +36,7 @@ export const useBankingStore = create<BankingState>()((set, get) => ({
   visible: false,
   loading: false,
   atm: false,
+  canCreateAccounts: false,
   selectedAccountId: null,
   locale: {},
   currency: 'USD',
@@ -37,12 +44,18 @@ export const useBankingStore = create<BankingState>()((set, get) => ({
   toast: null,
   modal: null,
 
-  setVisible: (visible, atm, incomingTheme) => {
+  setVisible: (visible, atm, incomingTheme, canCreateAccounts = false) => {
     const resolved = incomingTheme
       ? mergeTheme(get().theme, incomingTheme)
       : get().theme;
     applyThemeCssVars(resolved);
-    set({ visible, atm, theme: resolved, modal: null });
+    set({
+      visible,
+      atm,
+      theme: resolved,
+      modal: null,
+      canCreateAccounts: !!canCreateAccounts,
+    });
   },
 
   setLoading: (loading) => set({ loading }),

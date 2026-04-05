@@ -181,11 +181,13 @@ Unterstützt sowohl `cachedAccounts` (Org/Shared) als auch `cachedPlayers` (Pers
 ### `changeAccountName`
 
 ```lua
-exports['Renewed-Banking']:changeAccountName(account, newName)
--- account: string – aktueller Account-Name
--- newName: string – neuer Account-Name
+exports['Renewed-Banking']:changeAccountName(account, newLabel)
+-- account: string – interne Konto-ID (PK, unverändert)
+-- newLabel: string – neuer Anzeigename (`display_label` in der DB)
 -- Rückgabe: true (Erfolg) oder false
 ```
+
+> **Hinweis:** Ändert nur die **Anzeigebezeichnung** (`display_label`), nicht die primäre Konto-ID. Externe Skripte, die früher eine PK-Umbenennung erwarteten, müssen angepasst werden.
 
 > **Sicherheitshinweis:** Dieser Export ignoriert den Creator-Check (kein `src` übergeben) – nur für vertrauenswürdige Server-Backends verwenden.
 
@@ -219,13 +221,12 @@ TriggerServerEvent('esx_society:withdrawMoney', account, amt) → removeAccountM
 
 | Event | Richtung | Beschreibung |
 |---|---|---|
-| `krgsh_banking:server:createNewAccount` | C→S | Neuen Shared-Account erstellen |
 | `krgsh_banking:server:getPlayerAccounts` | C→S | Eigene Accounts abrufen |
 | `krgsh_banking:server:viewMemberManagement` | C→S | Mitgliederliste anfordern |
 | `krgsh_banking:server:addAccountMember` | C→S | Mitglied hinzufügen |
 | `krgsh_banking:server:removeAccountMember` | C→S | Mitglied entfernen |
 | `krgsh_banking:server:deleteAccount` | C→S | Account löschen |
-| `krgsh_banking:server:changeAccountName` | C→S | Account umbenennen |
+| `krgsh_banking:server:changeAccountName` | C→S | Anzeigename eines Shared-Accounts ändern (`display_label`) |
 | `krgsh_banking:client:openBankUI` | S→C / intern | Bank-UI öffnen |
 | `krgsh_banking:client:sendNotification` | S→C | UI-Benachrichtigung |
 | `krgsh_banking:client:accountsMenu` | S→C | Account-Liste für Menü |
@@ -236,6 +237,7 @@ TriggerServerEvent('esx_society:withdrawMoney', account, amt) → removeAccountM
 | Callback | Beschreibung |
 |---|---|
 | `krgsh_banking:server:initalizeBanking` | Bankdaten für UI laden |
+| `krgsh_banking:server:createSharedAccount` | Shared-Account anlegen (Anzeigename; Kontonummer servergeneriert); Rückgabe `Account[]` oder `false` |
 | `krgsh_banking:server:deposit` | Einzahlung verarbeiten |
 | `krgsh_banking:server:withdraw` | Abhebung verarbeiten |
 | `krgsh_banking:server:transfer` | Überweisung verarbeiten |

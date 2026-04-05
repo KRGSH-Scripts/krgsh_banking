@@ -73,6 +73,16 @@ const FALLBACK: Record<string, string> = {
   cancel: 'Abbrechen',
   confirm: 'Bestaetigen',
   transfer: 'Business oder CitizenID',
+  create_account_ui: 'Neues Konto',
+  create_account_ui_hint: 'Die Kontonummer wird automatisch vergeben.',
+  create_account_name_label: 'Kontobezeichnung',
+  create_account_name_placeholder: 'z. B. Firmenkasse, Sparbuch',
+  create_account_submit: 'Konto anlegen',
+  create_account_success: 'Konto wurde angelegt.',
+  create_account_invalid_name: 'Ungueltiger Name (1–100 Zeichen).',
+  create_account_failed: 'Konto konnte nicht angelegt werden.',
+  create_account_rate_limit: 'Bitte kurz warten, bevor du ein weiteres Konto anlegst.',
+  change_account_display_name: 'Anzeigename',
 };
 
 export function useLocale() {

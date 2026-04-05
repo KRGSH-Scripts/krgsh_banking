@@ -24,12 +24,14 @@ end)
 RegisterNetEvent("krgsh_banking:client:createAccountMenu", function()
     local input = lib.inputDialog(locale("bank_name"), {{
         type = "input",
-        label = locale("account_id"),
-        placeholder = "a_test_account"
+        label = locale("create_account_name_label"),
+        placeholder = locale("create_account_name_placeholder")
     }})
     if input and input[1] then
-        input[1] = input[1]:lower():gsub("%s+", "")
-        TriggerServerEvent("krgsh_banking:server:createNewAccount", input[1])
+        local result = lib.callback.await('krgsh_banking:server:createSharedAccount', false, { displayName = input[1] })
+        if result then
+            lib.notify({ title = locale("bank_name"), description = locale("create_account_success"), type = "success" })
+        end
     end
 end)
 
@@ -161,11 +163,10 @@ end)
 RegisterNetEvent('krgsh_banking:client:changeAccountName', function(data)
     local input = lib.inputDialog(locale('change_account_name'), {{
         type = 'input',
-        label = locale('account_id'),
-        placeholder = 'savings-1001'
+        label = locale('change_account_display_name'),
+        placeholder = locale('create_account_name_placeholder')
     }})
     if input and input[1] then
-        input[1] = input[1]:lower():gsub("%s+", "")
         TriggerServerEvent('krgsh_banking:server:changeAccountName', data.account, input[1])
     end
 end)

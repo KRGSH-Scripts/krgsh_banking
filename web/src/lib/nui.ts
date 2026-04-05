@@ -39,6 +39,10 @@ export function normalizeAccounts(raw: unknown[]): Account[] {
       id: String(a.id ?? ''),
       type: String(a.type ?? ''),
       name: String(a.name ?? ''),
+      accountNumber:
+        typeof a.accountNumber === 'string' && a.accountNumber !== ''
+          ? a.accountNumber
+          : undefined,
       amount: Number(a.amount) || 0,
       frozen: Number(a.frozen) || 0,
       transactions: Array.isArray(a.transactions) ? a.transactions : [],

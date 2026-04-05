@@ -72,11 +72,11 @@ Resource Start
 
 **Erstellen durch Spieler:**
 ```
-Client: krgsh_banking:client:createAccountMenu
-  → Input: account-id (lowercase, no spaces)
-  → Server: krgsh_banking:server:createNewAccount
-  → Validierung: cachedAccounts[id] darf nicht existieren
-  → cachedAccounts[id] anlegen
+Client: krgsh_banking:client:createAccountMenu ODER NUI „Konto anlegen“
+  → Input: Anzeigename (display_label)
+  → Server: lib.callback krgsh_banking:server:createSharedAccount
+  → Server generiert eindeutige Kontonummer (PK id)
+  → cachedAccounts[id] anlegen, display_label persistiert
   → cachedPlayers[cid].accounts erweitern
   → MySQL INSERT
 ```
@@ -121,15 +121,13 @@ Server: krgsh_banking:server:deleteAccount
 
 ## Account-Umbenennung (Rename)
 
-`updateAccountName(account, newName, src)`:
+`updateAccountName(account, newLabel, src)` (nur Shared-Accounts mit `creator`):
 
-1. Prüfen: alter Account existiert, neuer Name ist frei, Aufrufer ist `creator`
-2. `cachedAccounts[newName]` = Deep-Copy von `cachedAccounts[account]`
-3. `cachedAccounts[account] = nil`
-4. Alle Online-Spieler: `cachedPlayers[cid].accounts` aktualisieren
-5. MySQL: `UPDATE bank_accounts_new SET id = newName WHERE id = account`
+1. Prüfen: Account existiert, Anzeigename 1–100 Zeichen, Aufrufer ist `creator` (wenn `src` gesetzt)
+2. `cachedAccounts[account].name` und `display_label` setzen
+3. MySQL: `UPDATE bank_accounts_new SET display_label = ? WHERE id = ?` (PK `id` bleibt stabil)
 
-> **Wichtig:** Transaktionen referenzieren den alten Namen in `title`-Feldern – diese werden **nicht** rückwirkend aktualisiert.
+> **Wichtig:** Transaktionen referenzieren ggf. ältere Namen in `title`-Feldern – diese werden **nicht** rückwirkend aktualisiert.
 
 ---
 

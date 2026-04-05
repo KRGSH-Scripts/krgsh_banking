@@ -44,17 +44,17 @@ lib.registerContext({
 
 ### Account erstellen: `createAccountMenu`
 
-Input-Dialog mit einem Feld:
-- Typ: `input`, Placeholder: `"a_test_account"`
-- Normalisierung: `.lower():gsub("%s+", "")` – alles Klein, keine Leerzeichen
+Input-Dialog mit einem Feld für die **Kontobezeichnung** (Anzeigename). Die **Kontonummer** (`id` / PK) wird serverseitig generiert (Ziffernfolge, Länge an der CitizenID orientiert).
 
 ```lua
-TriggerServerEvent("krgsh_banking:server:createNewAccount", input[1])
+lib.callback.await('krgsh_banking:server:createSharedAccount', false, { displayName = input[1] })
 ```
 
+Zusätzlich kann an Bankfilialen mit `createAccounts = true` in der **NUI** über ein Plus in der Kontoliste dasselbe Callback genutzt werden (`createAccount` NUI → Client → Callback).
+
 **Server-Validierung:**
-- `cachedAccounts[accountid]` darf nicht existieren
-- Erstellt Konto mit `creator = cid`, `auth = { [cid] = true }`
+- Anzeigename 1–100 Zeichen (getrimmt)
+- Eindeutige generierte `id`, `creator = cid`, `auth = { [cid] = true }`, `display_label` in `bank_accounts_new`
 
 ---
 
@@ -138,15 +138,14 @@ Zwischenschritt-Menü zur Bestätigung:
 ### Account umbenennen: `changeAccountName`
 
 Input-Dialog:
-- Label: `locale('account_id')`
-- Placeholder: `"savings-1001"`
-- Normalisierung: `.lower():gsub("%s+", "")`
+- Label: `locale('change_account_display_name')` (Anzeigename)
+- Placeholder: `locale('create_account_name_placeholder')`
 
 ```lua
 TriggerServerEvent('krgsh_banking:server:changeAccountName', data.account, input[1])
 ```
 
-Ruft serverseitig `updateAccountName(account, newName, source)` auf.
+Ruft serverseitig `updateAccountName(account, newLabel, source)` auf: aktualisiert nur **`display_label`** und `cachedAccounts[account].name`; die primäre Konto-ID (`id`) bleibt unverändert.
 
 ---
 

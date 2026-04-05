@@ -55,13 +55,10 @@ export function relativeTime(
     : t('weeks', 'Vor %s Wochen').replace('%s', String(weeks));
 }
 
-export function accountMask(account: Account): string {
-  const raw = String(account.id ?? '')
-    .replace(/\s+/g, '')
-    .toUpperCase();
-  const head = raw.slice(0, 4) || 'BANK';
-  const tail = raw.slice(-4) || '0000';
-  return `${head} •••• ${tail}`;
+/** Full account number for UI (server sends `accountNumber`; fallback to internal `id`). */
+export function displayAccountNumber(account: Account): string {
+  const n = account.accountNumber ?? account.id;
+  return String(n ?? '');
 }
 
 export function accountTone(

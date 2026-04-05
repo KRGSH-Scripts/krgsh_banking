@@ -52,3 +52,27 @@ export function useWithdraw() {
 export function useTransfer() {
   return useTransactionMutation('transfer');
 }
+
+export function useCreateAccount() {
+  const queryClient = useQueryClient();
+  const store = useBankingStore();
+
+  return useMutation({
+    mutationFn: (displayName: string) =>
+      postNui<Account[]>('createAccount', { displayName }),
+    onMutate: () => {
+      store.setLoading(true);
+    },
+    onSettled: () => {
+      store.setLoading(false);
+    },
+    onSuccess: (data) => {
+      if (data !== false && Array.isArray(data)) {
+        const accounts = normalizeAccounts(data);
+        queryClient.setQueryData(['accounts'], accounts);
+        const last = accounts[accounts.length - 1];
+        if (last) store.setSelectedAccountId(last.id);
+      }
+    },
+  });
+}

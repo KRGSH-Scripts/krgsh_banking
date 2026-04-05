@@ -91,6 +91,7 @@ end
 local function openBankUI(openData)
     openData = type(openData) == 'table' and openData or { atm = openData == true }
     local isAtm = openData.atm == true
+    local canCreateAccounts = (not isAtm) and openData.createAccounts == true
     if isAtm then
         openData.location = getStreetLocationLabel()
     end
@@ -109,6 +110,7 @@ local function openBankUI(openData)
                 accounts = accounts,
                 loading = false,
                 atm = isAtm,
+                canCreateAccounts = canCreateAccounts,
                 theme = resolveUiTheme(openData)
             })
         end)
@@ -159,6 +161,12 @@ CreateThread(function ()
             cb(newTransaction)
         end)
     end
+    RegisterNUICallback('createAccount', function(data, cb)
+        local payload = lib.callback.await('krgsh_banking:server:createSharedAccount', false, {
+            displayName = type(data) == 'table' and data.displayName or nil
+        })
+        cb(payload or false)
+    end)
     local addedModels = {}
     for i = 1, #Config.atms do
         local atmEntry = Config.atms[i]
@@ -218,6 +226,7 @@ function CreatePeds()
                 icon = 'fas fa-money-check',
                 label = locale('view_bank'),
                 atm = false,
+                createAccounts = pedConfig.createAccounts,
                 theme = pedOpenUi.theme,
                 institution = pedOpenUi.institution,
                 subtitle = pedOpenUi.subtitle,

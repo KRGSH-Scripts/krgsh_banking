@@ -13,7 +13,7 @@ import {
   formatMoney,
   formatDate,
   relativeTime,
-  accountMask,
+  displayAccountNumber,
   accountTone,
   metricsForAccount,
 } from '../../lib/formatters';
@@ -79,7 +79,7 @@ export default function HeroSection({ account, accounts: _accounts, t }: HeroSec
               {accountTone(account, locale)}
             </Badge>
             <Text size="xs" style={{ color: 'var(--rb-text-soft)', letterSpacing: 1 }}>
-              {accountMask(account)}
+              {displayAccountNumber(account)}
             </Text>
             {isFrozen && (
               <Badge color="red" size="xs">
@@ -101,7 +101,7 @@ export default function HeroSection({ account, accounts: _accounts, t }: HeroSec
             {account.name || account.id}
           </Text>
           <Text size="xs" style={{ color: 'var(--rb-text-muted)' }}>
-            {accountTone(account, locale)} · {account.id}
+            {accountTone(account, locale)} · {displayAccountNumber(account)}
             {theme.location ? ` · ${theme.location}` : ''}
           </Text>
 

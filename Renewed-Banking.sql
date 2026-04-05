@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS `bank_accounts_new` (
   `auth` longtext DEFAULT '[]',
   `isFrozen` int(11) DEFAULT 0,
   `creator` varchar(50) DEFAULT NULL,
+  `display_label` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`)
 );
 

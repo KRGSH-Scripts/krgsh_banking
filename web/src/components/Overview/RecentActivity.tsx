@@ -1,6 +1,11 @@
 import { Card, Text, Group, Box, Stack, Divider, rem } from '@mantine/core';
 import type { Account } from '../../types';
-import { formatMoney, formatDate, relativeTime } from '../../lib/formatters';
+import {
+  formatMoney,
+  formatDate,
+  relativeTime,
+  displayAccountNumber,
+} from '../../lib/formatters';
 import { useBankingStore } from '../../store/bankingStore';
 
 interface RecentActivityProps {
@@ -35,7 +40,7 @@ export default function RecentActivity({ account, t }: RecentActivityProps) {
           </Text>
         </Box>
         <Text size="xs" style={{ color: 'var(--rb-text-muted)' }}>
-          {account.id}
+          {displayAccountNumber(account)}
         </Text>
       </Group>
 
