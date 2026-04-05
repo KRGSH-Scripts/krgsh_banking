@@ -19,6 +19,8 @@ Config = {
     bankCardPinSessionSeconds = 600,
     --- Used with PIN hashing; set convar `krgsh_banking:card_pin_secret` on production servers
     bankCardPinSecret = 'change_me',
+    --- When true, ATMs only list shared accounts reachable via a physical bank_card item (no personal/job at ATM).
+    atmCardsOnly = true,
     requireZeroBalanceToClose = true,
     -- UI theming / bank branding
     -- `theme` is a key from Config.uiThemes and can be overridden per event call / per ped.

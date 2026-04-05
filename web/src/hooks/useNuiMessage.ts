@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useBankingStore } from '../store/bankingStore';
-import { normalizeAccounts } from '../lib/nui';
+import { normalizeAccounts, normalizeAtmCards } from '../lib/nui';
 import type { NuiMessage } from '../types';
 
 export function useNuiMessage() {
@@ -31,6 +31,7 @@ export function useNuiMessage() {
             !!msg.atm,
             msg.theme,
             !!msg.canCreateAccounts,
+            normalizeAtmCards(msg.atmCards),
           );
           store.setLoading(!!msg.loading);
 

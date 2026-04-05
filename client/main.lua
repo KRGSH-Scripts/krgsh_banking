@@ -120,6 +120,10 @@ local function ensureBankCardPins(accounts, depth)
     return accounts
 end
 
+local function atmCardsOnlyMode()
+    return Config.atmCardsOnly ~= false
+end
+
 local function openBankUI(openData)
     openData = type(openData) == 'table' and openData or { atm = openData == true }
     local isAtm = openData.atm == true
@@ -129,29 +133,40 @@ local function openBankUI(openData)
     end
     SendNUIMessage({action = 'setLoading', status = true})
     nuiHandler(true)
-    lib.callback('krgsh_banking:server:initalizeBanking', false, function(accounts)
-        if not accounts then
+    lib.callback('krgsh_banking:server:initalizeBanking', false, function(result)
+        if not result then
             nuiHandler(false)
             lib.notify({title = locale('bank_name'), description = locale('loading_failed'), type = 'error'})
             return
         end
-        accounts = ensureBankCardPins(accounts, 0)
-        if not accounts then
-            nuiHandler(false)
-            return
+        local accounts, atmCards
+        if isAtm and atmCardsOnlyMode() and type(result) == 'table' and type(result.atmCards) == 'table' then
+            accounts = type(result.accounts) == 'table' and result.accounts or {}
+            atmCards = result.atmCards
+        else
+            accounts = result
+            atmCards = {}
+            if not isAtm or not atmCardsOnlyMode() then
+                accounts = ensureBankCardPins(accounts, 0)
+                if not accounts then
+                    nuiHandler(false)
+                    return
+                end
+            end
         end
         SetTimeout(1000, function()
             SendNUIMessage({
                 action = 'setVisible',
                 status = isVisible,
                 accounts = accounts,
+                atmCards = atmCards,
                 loading = false,
                 atm = isAtm,
                 canCreateAccounts = canCreateAccounts,
                 theme = resolveUiTheme(openData)
             })
         end)
-    end)
+    end, { atm = isAtm })
 end
 
 RegisterNetEvent('krgsh_banking:client:openBankUI', function(data)
@@ -194,10 +209,21 @@ local bankActions = {'deposit', 'withdraw', 'transfer'}
 for k = 1, #bankActions do
     local action = bankActions[k]
     RegisterNUICallback(action, function(data, cb)
-        local newTransaction = lib.callback.await('krgsh_banking:server:' .. action, false, data)
+        local payload = type(data) == 'table' and data or {}
+        local newTransaction = lib.callback.await('krgsh_banking:server:' .. action, false, payload)
         cb(newTransaction)
     end)
 end
+
+RegisterNUICallback('verifyBankCardPin', function(data, cb)
+    local payload = lib.callback.await('krgsh_banking:server:verifyBankCardPin', false, type(data) == 'table' and data or {})
+    cb(payload or false)
+end)
+
+RegisterNUICallback('refreshAtm', function(_, cb)
+    local pack = lib.callback.await('krgsh_banking:server:initalizeBanking', false, { atm = true })
+    cb(pack or false)
+end)
 
 RegisterNUICallback('createAccount', function(data, cb)
     local payload = lib.callback.await('krgsh_banking:server:createSharedAccount', false, {
