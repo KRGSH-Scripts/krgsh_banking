@@ -111,3 +111,31 @@ export interface TransactionPayload {
   comment: string;
   stateid?: string;
 }
+
+export type PaymentInstructionKind =
+  | 'standing_order'
+  | 'direct_debit'
+  | 'installment'
+  | 'subscription';
+
+export type PaymentInstructionStatus =
+  | 'pending_debtor_confirm'
+  | 'active'
+  | 'paused'
+  | 'cancelled'
+  | 'completed'
+  | 'declined';
+
+export interface PaymentInstruction {
+  id: string;
+  kind: PaymentInstructionKind;
+  debtor_account_id: string;
+  creditor_target: string;
+  amount: number;
+  interval_seconds: number;
+  next_run_at: number;
+  status: PaymentInstructionStatus;
+  metadata: Record<string, unknown>;
+  created_at: number;
+  updated_at: number;
+}

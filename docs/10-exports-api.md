@@ -20,6 +20,82 @@ Die Resource stellt eine öffentliche Server-API über Lua-Exports bereit. Diese
 | `removeAccountMember` | Funktion | Mitglied aus Shared-Account entfernen |
 | `getAccountTransactions` | Funktion | Transaktionsliste abrufen |
 | `changeAccountName` | Funktion | Account umbenennen |
+| `create_direct_debit_request` | Funktion | Lastschriftmandat anlegen (pending bis Bestätigung) |
+| `create_installment` | Funktion | Ratenzahlung anlegen (pending bis Bestätigung) |
+| `create_subscription` | Funktion | Abo anlegen (nur trusted resources / siehe Config) |
+| `create_standing_order` | Funktion | Dauerauftrag serverseitig anlegen |
+| `cancel_payment_instruction` | Funktion | Auftrag kündigen |
+| `suspend_subscription_system` | Funktion | Abo systemseitig aussetzen / wieder freigeben |
+| `trigger_direct_debit` | Funktion | Einzellastschrift (bei `interval_seconds = 0` oder zusätzlich) |
+
+---
+
+## Payment instructions (geplante Zahlungen)
+
+Ersetze `YourResourceName` durch den **echten** Resource-Namen (Ordnername).
+
+### `create_direct_debit_request`
+
+```lua
+local id, err = exports['YourResourceName']:create_direct_debit_request(
+    debtorAccountId,   -- string: CitizenID/ESX-ID oder bank_accounts_new.id
+    creditorTarget,    -- string: Ziel wie bei Überweisung
+    amount,            -- number: Betrag pro Lauf
+    intervalSeconds,   -- number: 0 = nur trigger_direct_debit, sonst Intervall (min. 60 empfohlen)
+    metadata           -- table? optional: label, external_ref, max_debit_per_period, ...
+)
+-- Erfolg: id (string). Fehler: false, reason
+```
+
+### `create_installment`
+
+```lua
+local id, err = exports['YourResourceName']:create_installment(
+    debtorAccountId,
+    creditorTarget,
+    installmentAmount,
+    totalPrincipal,
+    intervalSeconds,
+    metadata
+)
+```
+
+### `create_subscription`
+
+```lua
+local id, err = exports['YourResourceName']:create_subscription(
+    debtorAccountId,
+    creditorTarget,
+    amount,
+    intervalSeconds,
+    metadata
+)
+```
+
+Benötigt Eintrag in `Config.paymentInstructionsTrustedResources` oder Aufruf nur aus der Banking-Resource.
+
+### `create_standing_order`
+
+Wie Dauerauftrag, direkt aktiv (ohne Mandats-Bestätigung).
+
+### `cancel_payment_instruction`
+
+```lua
+exports['YourResourceName']:cancel_payment_instruction(instructionId)  -- bool
+```
+
+### `suspend_subscription_system`
+
+```lua
+exports['YourResourceName']:suspend_subscription_system(instructionId, true)   -- aussetzen
+exports['YourResourceName']:suspend_subscription_system(instructionId, false)  -- freigeben
+```
+
+### `trigger_direct_debit`
+
+```lua
+local ok, err = exports['YourResourceName']:trigger_direct_debit(instructionId, optionalAmount)
+```
 
 ---
 
@@ -241,3 +317,7 @@ TriggerServerEvent('esx_society:withdrawMoney', account, amt) → removeAccountM
 | `krgsh_banking:server:deposit` | Einzahlung verarbeiten |
 | `krgsh_banking:server:withdraw` | Abhebung verarbeiten |
 | `krgsh_banking:server:transfer` | Überweisung verarbeiten |
+| `krgsh_banking:server:listPaymentInstructions` | Geplante Zahlungen für Spieler |
+| `krgsh_banking:server:createStandingOrder` | Dauerauftrag anlegen |
+| `krgsh_banking:server:updatePaymentInstruction` | Pause / Fortsetzen / Kündigen |
+| `krgsh_banking:server:respondMandate` | Mandat / Rate akzeptieren oder ablehnen |
