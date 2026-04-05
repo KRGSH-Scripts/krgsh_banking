@@ -1,18 +1,8 @@
 # krgsh_banking
 
-<a href='https://ko-fi.com/ushifty' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
-
-[Renewed Discord](https://discord.gg/P3RMrbwA8n) (Community des Originalprojekts)
-
----
-
 ## Projektbeschreibung
 
-Vollständiges FiveM-Banking-System für **QBCore**, **QBX** und **ESX**. **krgsh_banking** basiert auf dem Open-Source-Projekt **[Renewed-Banking](https://github.com/Renewed-Scripts/Renewed-Banking)** (Renewed-Scripts). Ursprünglich entwickelt und gepflegt von uShifty#1733; das 2.0-UI wurde von [qwadebot](https://github.com/qw-scripts) neu gestaltet und von [uShifty](https://github.com/uShifty) angepasst.
-
-### Herkunft, Lizenz und Weiterveröffentlichung
-
-Dieses Repository ist ein **Fork** von [Renewed-Banking](https://github.com/Renewed-Scripts/Renewed-Banking). Der Quellcode bleibt **öffentlich** und wird unter derselben Lizenz wie das Original weitergegeben: **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International** ([LICENSE](LICENSE)). Bitte die upstream-Autorinnen und -Autoren angemessen nennen und die CC-BY-NC-SA-Bedingungen (Attribution, NonCommercial, ShareAlike) einhalten. Hinweis: Wegen der **NonCommercial**-Klausel entspricht die Lizenz nicht der strengen OSI-Definition von „Open Source“, der Code ist jedoch frei einsehbar und unter den genannten Bedingungen weiterverwendbar.
+TBD
 
 ---
 
@@ -137,67 +127,6 @@ Vollständige API-Referenz: [docs/10-exports-api.md](docs/10-exports-api.md)
 
 ---
 
-## Changelog
+### Herkunft, Lizenz und Weiterveröffentlichung
 
-<details>
-<summary>Versionshistorie anzeigen</summary>
-
-**Branding / Fork (krgsh_banking)**
-
-- Resource- und Export-Name **`krgsh_banking`** statt `Renewed-Banking`; Events/Callbacks bereits unter `krgsh_banking:*`.
-- SQL-Datei: **`krgsh_banking.sql`** (ehemals `Renewed-Banking.sql`).
-- Config: **`krgshMultiJob`** statt `renewedMultiJob`.
-- README: Herkunft von [Renewed-Banking](https://github.com/Renewed-Scripts/Renewed-Banking), Lizenzhinweis CC BY-NC-SA 4.0.
-
-**V2.0.0**
-```
-New UI Design
-ESX Support Added
-QB Dependencies switched to OX
-Massive server side optimizations
-Rework initial codebase
-Delete created accounts
-```
-
-**V1.0.5**
-```
-Fix OX integration being ATM only
-Added Renewed Phones MultiJob Support (Enable in config)
-Fix onResourceStop errors for QB target users
-Fixed a couple Account Menu bugs from 1.0.4 OX integration
-Slight client side cleanup
-Fix exploit allowing players to hijack sub accounts
-```
-
-**v1.0.4**
-```
-Add server export to get an accounts transactions.
-Add /givecash command
-Added ox lib and target support
-```
-
-**V1.0.3**
-```
-Fixes the default message when no message is provided when transferring
-Added Bank Checks for those who don't like to configure their QBCore
-Added a check to ensure player cache exists
-Fixed bug with shared accounts and entering a negative value
-```
-
-**V1.0.2**
-```
-Added Gangs To SQL
-Disabled Deposit At ATM Machines
-Fix Error "Form Submission Canceled"
-QBCore Locale System Implementation
-Implemented Translations To UI (No Need To Edit UI Anymore)
-Fix Balance & Transactions Update
-Fix Transaction Default Message
-```
-
-**V1.0.1**
-```
-Added Banking Blips
-```
-
-</details>
+Dieses Repository ist ein **Fork** von [Renewed-Banking](https://github.com/Renewed-Scripts/Renewed-Banking). Der Quellcode bleibt **öffentlich** und wird unter derselben Lizenz wie das Original weitergegeben: **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International** ([LICENSE](LICENSE)). Bitte die upstream-Autorinnen und -Autoren angemessen nennen und die CC-BY-NC-SA-Bedingungen (Attribution, NonCommercial, ShareAlike) einhalten. Hinweis: Wegen der **NonCommercial**-Klausel entspricht die Lizenz nicht der strengen OSI-Definition von „Open Source“, der Code ist jedoch frei einsehbar und unter den genannten Bedingungen weiterverwendbar.
