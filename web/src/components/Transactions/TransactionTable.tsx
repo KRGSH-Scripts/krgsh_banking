@@ -158,7 +158,7 @@ export default function TransactionTable({ accounts, t }: TransactionTableProps)
                       >
                         {isIn
                           ? t('deposit_but', 'Einzahlung')
-                          : t('withdraw_but', 'Abhebung')}
+                          : t('withdraw_but', 'Auszahlung')}
                       </Badge>
                     </Table.Td>
                     <Table.Td style={{ textAlign: 'right' }}>
