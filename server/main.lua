@@ -351,6 +351,18 @@ local function executeAccountTransfer(fromAccount, stateid, amount, comment, opt
     return true
 end
 
+--- Must exist before `server/payment_instructions.lua` loads; set before DB bootstrap asserts at EOF.
+BankingDeps = {
+    executeAccountTransfer = executeAccountTransfer,
+    getBankData = getBankData,
+    cachedAccounts = cachedAccounts,
+    cachedPlayers = cachedPlayers,
+    getPlayerData = getPlayerData,
+    genTransactionID = genTransactionID,
+    sanitizeMessage = sanitizeMessage,
+    UpdatePlayerAccount = UpdatePlayerAccount,
+}
+
 lib.callback.register("krgsh_banking:server:deposit", function(source, data)
     local Player = GetPlayerObject(source)
     local amount = tonumber(data.amount)
@@ -857,15 +869,3 @@ assert(MySQL.transaction.await(createTables), "Failed to create tables")
 pcall(function()
     MySQL.query.await('ALTER TABLE `bank_accounts_new` ADD COLUMN `display_label` varchar(100) DEFAULT NULL')
 end)
-
---- Injected by `server/payment_instructions.lua` after load (same resource chunk).
-BankingDeps = {
-    executeAccountTransfer = executeAccountTransfer,
-    getBankData = getBankData,
-    cachedAccounts = cachedAccounts,
-    cachedPlayers = cachedPlayers,
-    getPlayerData = getPlayerData,
-    genTransactionID = genTransactionID,
-    sanitizeMessage = sanitizeMessage,
-    UpdatePlayerAccount = UpdatePlayerAccount,
-}
