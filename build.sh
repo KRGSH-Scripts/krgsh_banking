@@ -1,8 +1,9 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # Baut die NUI (Vite) nach web/public — Ausgabe wird von fxmanifest.lua als ui_page/files geladen.
-set -euo pipefail
+# POSIX-sh: laeuft auch unter dash (z. B. wenn txAdmin `sh build.sh` aufruft).
+set -eu
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 WEB="${ROOT}/web"
 
 if ! command -v npm >/dev/null 2>&1; then
@@ -12,7 +13,7 @@ fi
 
 cd "$WEB"
 
-if [[ -f package-lock.json ]]; then
+if [ -f package-lock.json ]; then
   npm ci
 else
   npm install
