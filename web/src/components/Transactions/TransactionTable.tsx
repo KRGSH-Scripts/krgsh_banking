@@ -12,8 +12,12 @@ import {
   TextInput,
   MultiSelect,
   Pagination,
+  Popover,
+  Button,
+  ActionIcon,
   SimpleGrid,
 } from '@mantine/core';
+import { IconFilter, IconX } from '@tabler/icons-react';
 import type { Account } from '../../types';
 import {
   JOURNAL_PAGE_SIZE,
@@ -55,6 +59,7 @@ function dateInputStyle(minW: number): CSSProperties {
   return {
     flex: '1 1 auto',
     minWidth: rem(minW),
+    width: '100%',
     background: 'var(--rb-surface)',
     border: '1px solid var(--rb-border)',
     borderRadius: rem(8),
@@ -64,6 +69,22 @@ function dateInputStyle(minW: number): CSSProperties {
   };
 }
 
+function countActiveFilterGroups(f: JournalFilters): number {
+  let n = 0;
+  if (f.dateFrom || f.dateTo) n += 1;
+  if (f.kinds.length > 0) n += 1;
+  if (f.counterpartyValues.length > 0 || f.counterpartyQuery.trim()) n += 1;
+  if (f.textQuery.trim()) n += 1;
+  return n;
+}
+
+function periodChipLabel(f: JournalFilters): string {
+  if (f.dateFrom && f.dateTo) return `${f.dateFrom} – ${f.dateTo}`;
+  if (f.dateFrom) return `${f.dateFrom} – …`;
+  if (f.dateTo) return `… – ${f.dateTo}`;
+  return '';
+}
+
 export default function TransactionTable({
   account,
   allAccounts,
@@ -71,6 +92,7 @@ export default function TransactionTable({
 }: TransactionTableProps) {
   const [filters, setFilters] = useState<JournalFilters>(defaultFilters);
   const [page, setPage] = useState(1);
+  const [filterPopoverOpened, setFilterPopoverOpened] = useState(false);
   const currency = useBankingStore((s) => s.currency);
   const locale = useBankingStore((s) => s.locale);
 
@@ -130,6 +152,130 @@ export default function TransactionTable({
   const fromRow = total === 0 ? 0 : (activePage - 1) * JOURNAL_PAGE_SIZE + 1;
   const toRow = Math.min(activePage * JOURNAL_PAGE_SIZE, total);
 
+  const activeFilterGroups = countActiveFilterGroups(filters);
+
+  const bumpPage = () => setPage(1);
+
+  const filterFields = (
+    <Stack gap={rem(12)}>
+      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing={rem(10)}>
+        <Box>
+          <Text size="xs" fw={600} mb={rem(4)} style={{ color: 'var(--rb-text-muted)' }}>
+            {t('journal_date_from', 'Von (Datum)')}
+          </Text>
+          <input
+            type="date"
+            value={filters.dateFrom}
+            onChange={(e) => {
+              setFilters((f) => ({ ...f, dateFrom: e.target.value }));
+              bumpPage();
+            }}
+            style={dateInputStyle(120)}
+          />
+        </Box>
+        <Box>
+          <Text size="xs" fw={600} mb={rem(4)} style={{ color: 'var(--rb-text-muted)' }}>
+            {t('journal_date_to', 'Bis (Datum)')}
+          </Text>
+          <input
+            type="date"
+            value={filters.dateTo}
+            onChange={(e) => {
+              setFilters((f) => ({ ...f, dateTo: e.target.value }));
+              bumpPage();
+            }}
+            style={dateInputStyle(120)}
+          />
+        </Box>
+      </SimpleGrid>
+
+      <MultiSelect
+        label={t('journal_kind_label', 'Buchungstyp')}
+        placeholder={t('journal_kind_placeholder', 'Alle Typen')}
+        data={kindSelectData}
+        value={filters.kinds}
+        onChange={(v) => {
+          setFilters((f) => ({ ...f, kinds: v as BookingKind[] }));
+          bumpPage();
+        }}
+        size="sm"
+        radius="md"
+        clearable
+        styles={{
+          input: {
+            background: 'var(--rb-surface)',
+            borderColor: 'var(--rb-border)',
+            color: 'var(--rb-text)',
+          },
+          label: { color: 'var(--rb-text-muted)', fontSize: rem(11), fontWeight: 600 },
+        }}
+      />
+
+      <MultiSelect
+        label={t('journal_counterparty_pick', 'Beteiligte (Auswahl)')}
+        placeholder={t('journal_counterparty_pick_ph', 'Name oder Konto waehlen')}
+        data={counterpartyOptions}
+        value={filters.counterpartyValues}
+        onChange={(v) => {
+          setFilters((f) => ({ ...f, counterpartyValues: v }));
+          bumpPage();
+        }}
+        size="sm"
+        radius="md"
+        searchable
+        clearable
+        styles={{
+          input: {
+            background: 'var(--rb-surface)',
+            borderColor: 'var(--rb-border)',
+            color: 'var(--rb-text)',
+          },
+          label: { color: 'var(--rb-text-muted)', fontSize: rem(11), fontWeight: 600 },
+        }}
+      />
+
+      <TextInput
+        label={t('journal_counterparty_text', 'Beteiligte (Freitext)')}
+        placeholder={t('journal_counterparty_text_ph', 'In Absender/Empfaenger suchen...')}
+        value={filters.counterpartyQuery}
+        onChange={(e) => {
+          setFilters((f) => ({ ...f, counterpartyQuery: e.currentTarget.value }));
+          bumpPage();
+        }}
+        size="sm"
+        radius="md"
+        styles={{
+          input: {
+            background: 'var(--rb-surface)',
+            borderColor: 'var(--rb-border)',
+            color: 'var(--rb-text)',
+          },
+          label: { color: 'var(--rb-text-muted)', fontSize: rem(11), fontWeight: 600 },
+        }}
+      />
+
+      <TextInput
+        label={t('journal_text_label', 'Buchungstext')}
+        placeholder={t('journal_text_ph', 'Verwendungszweck / Titel...')}
+        value={filters.textQuery}
+        onChange={(e) => {
+          setFilters((f) => ({ ...f, textQuery: e.currentTarget.value }));
+          bumpPage();
+        }}
+        size="sm"
+        radius="md"
+        styles={{
+          input: {
+            background: 'var(--rb-surface)',
+            borderColor: 'var(--rb-border)',
+            color: 'var(--rb-text)',
+          },
+          label: { color: 'var(--rb-text-muted)', fontSize: rem(11), fontWeight: 600 },
+        }}
+      />
+    </Stack>
+  );
+
   if (!account) {
     return (
       <Card
@@ -158,8 +304,14 @@ export default function TransactionTable({
         flex: 1,
       }}
     >
-      <Group justify="space-between" align="flex-start" mb={rem(16)} wrap="wrap" gap={rem(12)}>
-        <Box>
+      <Group
+        justify="space-between"
+        align="flex-start"
+        mb={rem(12)}
+        wrap="wrap"
+        gap={rem(10)}
+      >
+        <Box style={{ flex: '1 1 auto', minWidth: rem(200) }}>
           <Text size="xs" c="dimmed" tt="uppercase" fw={600} lts={0.5}>
             {t('allTransactions', 'Buchungsjournal')}
           </Text>
@@ -170,125 +322,196 @@ export default function TransactionTable({
             {t('journal_scope_hint', 'Nur Buchungen dieses Kontos.')}
           </Text>
         </Box>
+
+        <Group gap={rem(8)} wrap="nowrap">
+          <Popover
+            width={rem(380)}
+            position="bottom-end"
+            shadow="md"
+            radius="md"
+            opened={filterPopoverOpened}
+            onChange={setFilterPopoverOpened}
+            trapFocus
+            styles={{
+              dropdown: {
+                background: 'var(--rb-card)',
+                border: '1px solid var(--rb-border)',
+              },
+            }}
+          >
+            <Popover.Target>
+              <Button
+                variant="default"
+                size="sm"
+                radius="md"
+                leftSection={<IconFilter size={16} stroke={1.75} />}
+                styles={{
+                  root: {
+                    background: 'var(--rb-surface)',
+                    border: '1px solid var(--rb-border)',
+                    color: 'var(--rb-text)',
+                  },
+                }}
+              >
+                {t('journal_filter_btn', 'Filter')}
+                {activeFilterGroups > 0 ? (
+                  <Badge
+                    size="xs"
+                    variant="filled"
+                    color="pink"
+                    ml={rem(8)}
+                    circle
+                    style={{ minWidth: rem(20) }}
+                  >
+                    {activeFilterGroups}
+                  </Badge>
+                ) : null}
+              </Button>
+            </Popover.Target>
+            <Popover.Dropdown p={rem(16)}>
+              <Text fw={600} size="sm" mb={rem(12)} style={{ color: 'var(--rb-text)' }}>
+                {t('journal_filter_title', 'Buchungen filtern')}
+              </Text>
+              <ScrollArea.Autosize mah={rem(360)} type="auto">
+                {filterFields}
+              </ScrollArea.Autosize>
+              <Button
+                fullWidth
+                variant="light"
+                color="gray"
+                size="xs"
+                mt={rem(12)}
+                disabled={activeFilterGroups === 0}
+                onClick={() => {
+                  setFilters(defaultFilters());
+                  bumpPage();
+                }}
+              >
+                {t('journal_filter_reset_all', 'Alle zuruecksetzen')}
+              </Button>
+            </Popover.Dropdown>
+          </Popover>
+        </Group>
       </Group>
 
-      <Stack gap={rem(12)} mb={rem(16)}>
-        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing={rem(10)}>
-          <Box>
-            <Text size="xs" fw={600} mb={rem(4)} style={{ color: 'var(--rb-text-muted)' }}>
-              {t('journal_date_from', 'Von (Datum)')}
-            </Text>
-            <input
-              type="date"
-              value={filters.dateFrom}
-              onChange={(e) => {
-                setFilters((f) => ({ ...f, dateFrom: e.target.value }));
-                setPage(1);
-              }}
-              style={dateInputStyle(140)}
-            />
-          </Box>
-          <Box>
-            <Text size="xs" fw={600} mb={rem(4)} style={{ color: 'var(--rb-text-muted)' }}>
-              {t('journal_date_to', 'Bis (Datum)')}
-            </Text>
-            <input
-              type="date"
-              value={filters.dateTo}
-              onChange={(e) => {
-                setFilters((f) => ({ ...f, dateTo: e.target.value }));
-                setPage(1);
-              }}
-              style={dateInputStyle(140)}
-            />
-          </Box>
-        </SimpleGrid>
-
-        <MultiSelect
-          label={t('journal_kind_label', 'Buchungstyp')}
-          placeholder={t('journal_kind_placeholder', 'Alle Typen')}
-          data={kindSelectData}
-          value={filters.kinds}
-          onChange={(v) => {
-            setFilters((f) => ({ ...f, kinds: v as BookingKind[] }));
-            setPage(1);
-          }}
-          size="sm"
-          radius="md"
-          clearable
-          styles={{
-            input: {
-              background: 'var(--rb-surface)',
-              borderColor: 'var(--rb-border)',
-              color: 'var(--rb-text)',
-            },
-            label: { color: 'var(--rb-text-muted)', fontSize: rem(11), fontWeight: 600 },
-          }}
-        />
-
-        <MultiSelect
-          label={t('journal_counterparty_pick', 'Beteiligte (Auswahl)')}
-          placeholder={t('journal_counterparty_pick_ph', 'Name oder Konto waehlen')}
-          data={counterpartyOptions}
-          value={filters.counterpartyValues}
-          onChange={(v) => {
-            setFilters((f) => ({ ...f, counterpartyValues: v }));
-            setPage(1);
-          }}
-          size="sm"
-          radius="md"
-          searchable
-          clearable
-          styles={{
-            input: {
-              background: 'var(--rb-surface)',
-              borderColor: 'var(--rb-border)',
-              color: 'var(--rb-text)',
-            },
-            label: { color: 'var(--rb-text-muted)', fontSize: rem(11), fontWeight: 600 },
-          }}
-        />
-
-        <TextInput
-          label={t('journal_counterparty_text', 'Beteiligte (Freitext)')}
-          placeholder={t('journal_counterparty_text_ph', 'In Absender/Empfaenger suchen...')}
-          value={filters.counterpartyQuery}
-          onChange={(e) => {
-            setFilters((f) => ({ ...f, counterpartyQuery: e.currentTarget.value }));
-            setPage(1);
-          }}
-          size="sm"
-          radius="md"
-          styles={{
-            input: {
-              background: 'var(--rb-surface)',
-              borderColor: 'var(--rb-border)',
-              color: 'var(--rb-text)',
-            },
-            label: { color: 'var(--rb-text-muted)', fontSize: rem(11), fontWeight: 600 },
-          }}
-        />
-
-        <TextInput
-          label={t('journal_text_label', 'Buchungstext')}
-          placeholder={t('journal_text_ph', 'Verwendungszweck / Titel...')}
-          value={filters.textQuery}
-          onChange={(e) => {
-            setFilters((f) => ({ ...f, textQuery: e.currentTarget.value }));
-            setPage(1);
-          }}
-          size="sm"
-          radius="md"
-          styles={{
-            input: {
-              background: 'var(--rb-surface)',
-              borderColor: 'var(--rb-border)',
-              color: 'var(--rb-text)',
-            },
-            label: { color: 'var(--rb-text-muted)', fontSize: rem(11), fontWeight: 600 },
-          }}
-        />
-      </Stack>
+      {activeFilterGroups > 0 ? (
+        <Group gap={rem(6)} mb={rem(12)} wrap="wrap" align="center">
+          <Text size="xs" fw={600} style={{ color: 'var(--rb-text-muted)' }}>
+            {t('journal_filter_active_label', 'Aktiv:')}
+          </Text>
+          {(filters.dateFrom || filters.dateTo) && (
+            <Badge
+              size="sm"
+              variant="light"
+              color="pink"
+              tt="none"
+              style={{ maxWidth: rem(220) }}
+              rightSection={
+                <ActionIcon
+                  size="xs"
+                  variant="transparent"
+                  color="pink"
+                  aria-label={t('journal_filter_remove', 'Entfernen')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFilters((f) => ({ ...f, dateFrom: '', dateTo: '' }));
+                    bumpPage();
+                  }}
+                >
+                  <IconX size={12} stroke={1.75} />
+                </ActionIcon>
+              }
+              styles={{ root: { paddingRight: rem(4) } }}
+            >
+              {t('journal_filter_chip_period', 'Zeitraum')}: {periodChipLabel(filters)}
+            </Badge>
+          )}
+          {filters.kinds.length > 0 && (
+            <Badge
+              size="sm"
+              variant="light"
+              color="pink"
+              rightSection={
+                <ActionIcon
+                  size="xs"
+                  variant="transparent"
+                  color="pink"
+                  aria-label={t('journal_filter_remove', 'Entfernen')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFilters((f) => ({ ...f, kinds: [] }));
+                    bumpPage();
+                  }}
+                >
+                  <IconX size={12} stroke={1.75} />
+                </ActionIcon>
+              }
+              styles={{ root: { paddingRight: rem(4) } }}
+            >
+              {t('journal_filter_chip_types', 'Typen')}: {filters.kinds.length}
+            </Badge>
+          )}
+          {(filters.counterpartyValues.length > 0 || filters.counterpartyQuery.trim()) && (
+            <Badge
+              size="sm"
+              variant="light"
+              color="pink"
+              rightSection={
+                <ActionIcon
+                  size="xs"
+                  variant="transparent"
+                  color="pink"
+                  aria-label={t('journal_filter_remove', 'Entfernen')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFilters((f) => ({
+                      ...f,
+                      counterpartyValues: [],
+                      counterpartyQuery: '',
+                    }));
+                    bumpPage();
+                  }}
+                >
+                  <IconX size={12} stroke={1.75} />
+                </ActionIcon>
+              }
+              styles={{ root: { paddingRight: rem(4) } }}
+            >
+              {t('journal_filter_chip_parties', 'Beteiligte')}
+            </Badge>
+          )}
+          {filters.textQuery.trim() && (
+            <Badge
+              size="sm"
+              variant="light"
+              color="pink"
+              tt="none"
+              style={{ maxWidth: rem(200) }}
+              rightSection={
+                <ActionIcon
+                  size="xs"
+                  variant="transparent"
+                  color="pink"
+                  aria-label={t('journal_filter_remove', 'Entfernen')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFilters((f) => ({ ...f, textQuery: '' }));
+                    bumpPage();
+                  }}
+                >
+                  <IconX size={12} stroke={1.75} />
+                </ActionIcon>
+              }
+              styles={{ root: { paddingRight: rem(4) } }}
+            >
+              {t('journal_filter_chip_text', 'Text')}:{' '}
+              {filters.textQuery.length > 24
+                ? `${filters.textQuery.slice(0, 24)}…`
+                : filters.textQuery}
+            </Badge>
+          )}
+        </Group>
+      ) : null}
 
       {total === 0 ? (
         <Text size="sm" style={{ color: 'var(--rb-text-muted)' }} ta="center" py={rem(24)}>

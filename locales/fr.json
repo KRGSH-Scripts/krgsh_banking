@@ -181,5 +181,14 @@
     "pi_atm_blocked": "Not available at the ATM.",
     "pi_created_ok": "Standing order created.",
     "pi_created_fail": "Could not create standing order.",
-    "pi_action_fail": "Action failed."
+    "pi_action_fail": "Action failed.",
+    "journal_filter_btn": "Filters",
+    "journal_filter_title": "Filter transactions",
+    "journal_filter_reset_all": "Clear all",
+    "journal_filter_chip_period": "Period",
+    "journal_filter_chip_types": "Types",
+    "journal_filter_chip_parties": "Parties",
+    "journal_filter_chip_text": "Text",
+    "journal_filter_active_label": "Active:",
+    "journal_filter_remove": "Remove"
 }
