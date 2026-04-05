@@ -43,6 +43,7 @@ function TransactionsPage() {
           onChange={(v) => {
             if (v === 'overview') void navigate({ to: '/overview' });
             if (v === 'schedules') void navigate({ to: '/schedules' });
+            if (v === 'bank-cards') void navigate({ to: '/bank-cards' });
           }}
           mb={rem(20)}
           styles={{
@@ -60,6 +61,7 @@ function TransactionsPage() {
             <Tabs.Tab value="overview">{t('dashboard', 'Kontouebersicht')}</Tabs.Tab>
             <Tabs.Tab value="transactions">{t('transactionLog', 'Buchungen')}</Tabs.Tab>
             {!atm ? <Tabs.Tab value="schedules">{t('pi_nav', 'Zahlungsplaene')}</Tabs.Tab> : null}
+            {!atm ? <Tabs.Tab value="bank-cards">{t('bank_cards_nav', 'Karten')}</Tabs.Tab> : null}
           </Tabs.List>
         </Tabs>
       </Box>

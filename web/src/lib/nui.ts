@@ -60,6 +60,7 @@ export function normalizeAccounts(raw: unknown[]): Account[] {
         typeof a.bankCardId === 'string' && a.bankCardId !== ''
           ? a.bankCardId
           : undefined,
+      canIssueCard: !!(a as { canIssueCard?: unknown }).canIssueCard,
     } as Account;
   });
 }

@@ -225,6 +225,26 @@ RegisterNUICallback('refreshAtm', function(_, cb)
     cb(pack or false)
 end)
 
+RegisterNUICallback('listBankCards', function(_, cb)
+    local list = lib.callback.await('krgsh_banking:server:listBankCards', false)
+    cb(type(list) == 'table' and list or {})
+end)
+
+RegisterNUICallback('updateBankCard', function(data, cb)
+    local payload = lib.callback.await('krgsh_banking:server:updateBankCard', false, type(data) == 'table' and data or {})
+    cb(type(payload) == 'table' and payload or { ok = false })
+end)
+
+RegisterNUICallback('revokeBankCard', function(data, cb)
+    local payload = lib.callback.await('krgsh_banking:server:revokeBankCard', false, type(data) == 'table' and data or {})
+    cb(type(payload) == 'table' and payload or { ok = false })
+end)
+
+RegisterNUICallback('issueBankCard', function(data, cb)
+    local payload = lib.callback.await('krgsh_banking:server:issueBankCard', false, type(data) == 'table' and data or {})
+    cb(payload)
+end)
+
 RegisterNUICallback('createAccount', function(data, cb)
     local payload = lib.callback.await('krgsh_banking:server:createSharedAccount', false, {
         displayName = type(data) == 'table' and data.displayName or nil
