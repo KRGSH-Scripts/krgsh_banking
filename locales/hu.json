@@ -212,5 +212,13 @@
     "bank_card_target_server_id": "Target player server ID",
     "bank_card_target_server_id_desc": "Who receives the physical card item.",
     "bank_card_pin_optional": "PIN (optional, leave empty for none)",
+    "atm_no_cards": "You have no bank cards for this ATM.",
+    "atm_select_card": "Insert card",
+    "atm_select_card_sub": "Choose a card linked to your account.",
+    "atm_change_card": "Eject / change card",
+    "atm_pin_title": "Enter card PIN",
+    "atm_pin_clear": "Clear",
+    "atm_pin_confirm": "Confirm",
+    "atm_no_card_access": "This action requires a valid bank card at the ATM.",
     "krgsh_banking": "^6[^4krgsh_banking^6]^0"
 }

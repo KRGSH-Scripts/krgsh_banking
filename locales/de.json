@@ -212,5 +212,13 @@
     "bank_card_target_server_id": "Server-ID des Zielspielers",
     "bank_card_target_server_id_desc": "Wer die physische Karte als Item erhält.",
     "bank_card_pin_optional": "PIN (optional, leer = keine PIN)",
+    "atm_no_cards": "Du hast keine Bankkarte für diesen Geldautomaten.",
+    "atm_select_card": "Karte einlegen",
+    "atm_select_card_sub": "Wähle eine Karte, die zu deinem Konto gehört.",
+    "atm_change_card": "Karte wechseln",
+    "atm_pin_title": "Karten-PIN eingeben",
+    "atm_pin_clear": "Löschen",
+    "atm_pin_confirm": "Bestätigen",
+    "atm_no_card_access": "Diese Aktion erfordert eine gültige Bankkarte am Geldautomaten.",
     "krgsh_banking": "^6[^4krgsh_banking^6]^0"
 }

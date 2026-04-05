@@ -1,4 +1,4 @@
-import type { Account, Transaction } from '../types';
+import type { Account, AtmCardOption, Transaction } from '../types';
 
 function getGlobalGetParentResourceName(): (() => string) | undefined {
   const g = globalThis as unknown as { GetParentResourceName?: () => string };
@@ -56,8 +56,34 @@ export function normalizeAccounts(raw: unknown[]): Account[] {
       amount: Number(a.amount) || 0,
       frozen: Number(a.frozen) || 0,
       transactions: Array.isArray(a.transactions) ? a.transactions : [],
+      bankCardId:
+        typeof a.bankCardId === 'string' && a.bankCardId !== ''
+          ? a.bankCardId
+          : undefined,
     } as Account;
   });
+}
+
+export function normalizeAtmCards(raw: unknown): AtmCardOption[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((row) => {
+    const r = row as Partial<AtmCardOption>;
+    return {
+      accountId: String(r.accountId ?? ''),
+      cardId: String(r.cardId ?? ''),
+      accountName: String(r.accountName ?? ''),
+      label: String(r.label ?? ''),
+      needsPin: !!r.needsPin,
+    };
+  });
+}
+
+export function isAtmBankPayload(
+  data: unknown,
+): data is { accounts: unknown[]; atmCards: unknown[] } {
+  if (typeof data !== 'object' || data === null) return false;
+  const o = data as { atmCards?: unknown };
+  return Array.isArray(o.atmCards);
 }
 
 export function getAllTransactions(accounts: Account[]): Transaction[] {

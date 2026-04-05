@@ -135,8 +135,12 @@ local function inventoryCardIdsForAccount(src, accountId)
     return set
 end
 
---- Returns allow, needsPin, activeCardId
-local function canViewSharedAccountDetails(src, accountId)
+local function atmCardsOnlyEnabled()
+    return Config.atmCardsOnly ~= false
+end
+
+--- Returns allow, needsPin, activeCardId. If preferredCardId is set, only that inventory card is considered.
+local function canViewSharedAccountDetails(src, accountId, preferredCardId)
     local acc = cachedAccounts[accountId]
     if not acc or not acc.creator then return false, false, nil end
     local Player = GetPlayerObject(src)
@@ -145,6 +149,18 @@ local function canViewSharedAccountDetails(src, accountId)
     if acc.creator == cid then return true, false, nil end
     if acc.auth[cid] then return true, false, nil end
     local phys = inventoryCardIdsForAccount(src, accountId)
+    if type(preferredCardId) == 'string' and preferredCardId ~= '' then
+        if not phys[preferredCardId] then return false, false, nil end
+        local crec = findRegisteredCard(acc, preferredCardId)
+        if not crec then return false, false, nil end
+        local pinH = crec.pinHash
+        if type(pinH) == 'string' and pinH ~= '' then
+            if not isCardSessionValid(src, accountId, preferredCardId) then
+                return true, true, preferredCardId
+            end
+        end
+        return true, false, preferredCardId
+    end
     for cardId in pairs(phys) do
         local crec = findRegisteredCard(acc, cardId)
         if crec then
@@ -158,6 +174,85 @@ local function canViewSharedAccountDetails(src, accountId)
         end
     end
     return false, false, nil
+end
+
+--- Shared account at ATM: physical registered card in inventory; PIN session if card has PIN.
+local function canUseSharedAtmWithCard(src, accountId, cardId)
+    if type(accountId) ~= 'string' or type(cardId) ~= 'string' or cardId == '' then return false end
+    local acc = cachedAccounts[accountId]
+    if not acc or not acc.creator then return false end
+    local phys = inventoryCardIdsForAccount(src, accountId)
+    if not phys[cardId] then return false end
+    local crec = findRegisteredCard(acc, cardId)
+    if not crec then return false end
+    local pinH = crec.pinHash
+    if type(pinH) == 'string' and pinH ~= '' then
+        return isCardSessionValid(src, accountId, cardId)
+    end
+    return true
+end
+
+local function validateAtmOrgBankingPayload(source, data)
+    if data.atm ~= true or not atmCardsOnlyEnabled() then return true end
+    local fromAccount = data.fromAccount
+    if type(fromAccount) ~= 'string' then return false end
+    local acc = cachedAccounts[fromAccount]
+    if not acc then
+        return true
+    end
+    if acc.creator then
+        local cardId = data.bankCardId
+        if type(cardId) ~= 'string' or cardId == '' then return false end
+        return canUseSharedAtmWithCard(source, fromAccount, cardId)
+    end
+    return false
+end
+
+--- ATM init / refresh: card catalog + optional single unlocked shared account (bankCardId on entry for NUI).
+local function getAtmBankPayload(source, activeAccountId, activeCardId)
+    local Player = GetPlayerObject(source)
+    local bankData = { accounts = {}, atmCards = {} }
+    if not Player then return bankData end
+    local cid = GetIdentifier(Player)
+    local plen = personalIdLen(cid)
+    local seen = {}
+    local items = FindBankCardItems(source, Config.bankCardItem or 'bank_card')
+    for i = 1, #items do
+        local m = items[i].metadata or {}
+        local aid = m.accountId
+        local cidCard = m.cardId
+        if type(aid) == 'string' and aid ~= '' and type(cidCard) == 'string' and cidCard ~= '' then
+            local acc = cachedAccounts[aid]
+            if acc and acc.creator and findRegisteredCard(acc, cidCard) then
+                local key = aid .. '\0' .. cidCard
+                if not seen[key] then
+                    seen[key] = true
+                    local crec = findRegisteredCard(acc, cidCard)
+                    local pinH = crec and crec.pinHash
+                    local needsPin = type(pinH) == 'string' and pinH ~= '' and not isCardSessionValid(source, aid, cidCard)
+                    local label = type(m.label) == 'string' and m.label ~= '' and m.label
+                        or ('%s — %s'):format(acc.name or aid, cidCard:sub(1, 8))
+                    bankData.atmCards[#bankData.atmCards + 1] = {
+                        accountId = aid,
+                        cardId = cidCard,
+                        accountName = acc.name or aid,
+                        label = label,
+                        needsPin = needsPin,
+                    }
+                end
+            end
+        end
+    end
+    if type(activeAccountId) == 'string' and type(activeCardId) == 'string'
+        and canUseSharedAtmWithCard(source, activeAccountId, activeCardId) then
+        local sAccount = cachedAccounts[activeAccountId]
+        if sAccount then
+            bankData.accounts[#bankData.accounts + 1] = cloneAccountForBankData(sAccount, cid, plen, {
+                bankCardId = activeCardId,
+            })
+        end
+    end
+    return bankData
 end
 
 local function canUseSharedAccountForBanking(src, accountId)
@@ -376,9 +471,12 @@ local function getBankData(source)
     return bankData
 end
 
-lib.callback.register('krgsh_banking:server:initalizeBanking', function(source)
-    local bankData = getBankData(source)
-    return bankData
+lib.callback.register('krgsh_banking:server:initalizeBanking', function(source, data)
+    data = type(data) == 'table' and data or {}
+    if data.atm == true and atmCardsOnlyEnabled() then
+        return getAtmBankPayload(source, nil, nil)
+    end
+    return getBankData(source)
 end)
 
 -- Events
@@ -628,10 +726,15 @@ BankingDeps = {
 }
 
 lib.callback.register("krgsh_banking:server:deposit", function(source, data)
+    data = type(data) == 'table' and data or {}
     local Player = GetPlayerObject(source)
     local amount = tonumber(data.amount)
     if not amount or amount < 1 then
         Notify(source, {title = locale("bank_name"), description = locale("invalid_amount", "deposit"), type = "error"})
+        return false
+    end
+    if not validateAtmOrgBankingPayload(source, data) then
+        Notify(source, { title = locale("bank_name"), description = locale("atm_no_card_access"), type = "error" })
         return false
     end
     if cachedAccounts[data.fromAccount] and not canUseCachedAccountForBanking(source, data.fromAccount) then
@@ -650,7 +753,7 @@ lib.callback.register("krgsh_banking:server:deposit", function(source, data)
         Player2 = Player2 and GetCharacterName(Player2) or data.fromAccount
         handleTransaction(data.fromAccount, locale("personal_acc") .. data.fromAccount, amount, data.comment, name, Player2, "deposit")
         Notify(source, { title = locale("bank_name"), description = locale("notify_deposit_cash", tostring(amount)), type = "success" })
-        local bankData = getBankData(source)
+        local bankData = (data.atm == true and atmCardsOnlyEnabled()) and getAtmBankPayload(source, data.fromAccount, data.bankCardId) or getBankData(source)
         return bankData
     else
         TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("not_enough_money"))
@@ -675,10 +778,15 @@ end
 exports('removeAccountMoney', RemoveAccountMoney)
 
 lib.callback.register('krgsh_banking:server:withdraw', function(source, data)
+    data = type(data) == 'table' and data or {}
     local Player = GetPlayerObject(source)
     local amount = tonumber(data.amount)
     if not amount or amount < 1 then
         Notify(source, {title = locale("bank_name"), description = locale("invalid_amount", "withdraw"), type = "error"})
+        return false
+    end
+    if not validateAtmOrgBankingPayload(source, data) then
+        Notify(source, { title = locale("bank_name"), description = locale("atm_no_card_access"), type = "error" })
         return false
     end
     if cachedAccounts[data.fromAccount] and not canUseCachedAccountForBanking(source, data.fromAccount) then
@@ -701,7 +809,7 @@ lib.callback.register('krgsh_banking:server:withdraw', function(source, data)
         AddMoney(Player, amount, 'cash', data.comment)
         handleTransaction(data.fromAccount,locale("personal_acc") .. data.fromAccount, amount, data.comment, Player2, name, "withdraw")
         Notify(source, { title = locale("bank_name"), description = locale("notify_withdraw_cash", tostring(amount)), type = "success" })
-        local bankData = getBankData(source)
+        local bankData = (data.atm == true and atmCardsOnlyEnabled()) and getAtmBankPayload(source, data.fromAccount, data.bankCardId) or getBankData(source)
         return bankData
     else
         TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("not_enough_money"))
@@ -710,10 +818,15 @@ lib.callback.register('krgsh_banking:server:withdraw', function(source, data)
 end)
 
 lib.callback.register('krgsh_banking:server:transfer', function(source, data)
+    data = type(data) == 'table' and data or {}
     local Player = GetPlayerObject(source)
     local amount = tonumber(data.amount)
     if not amount or amount < 1 then
         Notify(source, {title = locale("bank_name"), description = locale("invalid_amount", "transfer"), type = "error"})
+        return false
+    end
+    if not validateAtmOrgBankingPayload(source, data) then
+        Notify(source, { title = locale("bank_name"), description = locale("atm_no_card_access"), type = "error" })
         return false
     end
     if cachedAccounts[data.fromAccount] and not canUseCachedAccountForBanking(source, data.fromAccount) then
@@ -735,7 +848,8 @@ lib.callback.register('krgsh_banking:server:transfer', function(source, data)
         end
         return false
     end
-    return getBankData(source)
+    local bankData = (data.atm == true and atmCardsOnlyEnabled()) and getAtmBankPayload(source, data.fromAccount, data.bankCardId) or getBankData(source)
+    return bankData
 end)
 
 local function trimDisplayName(raw)
@@ -816,6 +930,9 @@ lib.callback.register('krgsh_banking:server:verifyBankCardPin', function(source,
     if not phys[cardId] then return false end
     if not verifyBankPin(accountId, cardId, pin, crec.pinHash) then return false end
     setCardSession(source, accountId, cardId)
+    if data.atm == true and atmCardsOnlyEnabled() then
+        return getAtmBankPayload(source, accountId, cardId)
+    end
     return getBankData(source)
 end)
 

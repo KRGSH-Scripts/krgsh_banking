@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { BankTheme, ModalState } from '../types';
+import type { AtmCardOption, BankTheme, ModalState } from '../types';
 import { DEFAULT_THEME, mergeTheme, applyThemeCssVars } from '../lib/theme';
 
 interface BankingState {
@@ -8,6 +8,7 @@ interface BankingState {
   atm: boolean;
   canCreateAccounts: boolean;
   selectedAccountId: string | null;
+  atmCards: AtmCardOption[];
   locale: Record<string, string>;
   currency: string;
   theme: BankTheme;
@@ -20,9 +21,11 @@ interface BankingState {
     atm: boolean,
     theme?: Partial<BankTheme>,
     canCreateAccounts?: boolean,
+    atmCards?: AtmCardOption[],
   ) => void;
   setLoading: (loading: boolean) => void;
   setSelectedAccountId: (id: string | null) => void;
+  setAtmCards: (cards: AtmCardOption[]) => void;
   setLocale: (locale: Record<string, string>, currency: string) => void;
   showToast: (message: string) => void;
   hideToast: () => void;
@@ -38,13 +41,14 @@ export const useBankingStore = create<BankingState>()((set, get) => ({
   atm: false,
   canCreateAccounts: false,
   selectedAccountId: null,
+  atmCards: [],
   locale: {},
   currency: 'USD',
   theme: DEFAULT_THEME,
   toast: null,
   modal: null,
 
-  setVisible: (visible, atm, incomingTheme, canCreateAccounts = false) => {
+  setVisible: (visible, atm, incomingTheme, canCreateAccounts = false, atmCards) => {
     const resolved = incomingTheme
       ? mergeTheme(get().theme, incomingTheme)
       : get().theme;
@@ -55,12 +59,15 @@ export const useBankingStore = create<BankingState>()((set, get) => ({
       theme: resolved,
       modal: null,
       canCreateAccounts: !!canCreateAccounts,
+      atmCards: atm ? (atmCards ?? []) : [],
     });
   },
 
   setLoading: (loading) => set({ loading }),
 
   setSelectedAccountId: (id) => set({ selectedAccountId: id }),
+
+  setAtmCards: (atmCards) => set({ atmCards }),
 
   setLocale: (locale, currency) => set({ locale, currency }),
 

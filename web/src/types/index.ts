@@ -27,6 +27,17 @@ export interface Account {
   transactions: Transaction[];
   auth?: Record<string, true>;
   creator?: string | null;
+  /** Physical bank card used at ATM (shared accounts, `atmCardsOnly` mode). */
+  bankCardId?: string;
+}
+
+/** One insertable bank card at the ATM (from server / inventory). */
+export interface AtmCardOption {
+  accountId: string;
+  cardId: string;
+  accountName: string;
+  label: string;
+  needsPin: boolean;
 }
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
@@ -79,6 +90,7 @@ export interface SetVisiblePayload {
   atm: boolean;
   canCreateAccounts?: boolean;
   theme?: Partial<BankTheme>;
+  atmCards?: AtmCardOption[];
 }
 
 export interface SetLoadingPayload {
@@ -110,6 +122,9 @@ export interface TransactionPayload {
   amount: number;
   comment: string;
   stateid?: string;
+  /** Set for ATM shared-account ops when `Config.atmCardsOnly` is enabled. */
+  atm?: boolean;
+  bankCardId?: string;
 }
 
 export type PaymentInstructionKind =
