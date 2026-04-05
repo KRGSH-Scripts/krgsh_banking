@@ -21,6 +21,13 @@ local function initalizeBanking()
         translations = locales,
         currency = Config.currency
     })
+    -- NUI explizit schließen (kein Demo-/Vollbild-Zustand aus dem Frontend)
+    SendNUIMessage({
+        action = 'setVisible',
+        status = false,
+        loading = false,
+        atm = false,
+    })
 end
 AddEventHandler('QBCore:Client:OnPlayerLoaded', function()
     Wait(100)

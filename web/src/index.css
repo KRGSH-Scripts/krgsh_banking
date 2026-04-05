@@ -9,23 +9,27 @@ body,
 }
 
 /* FiveM NUI: Seiten-Chrome transparent, Spiel bleibt sichtbar (Mantine setzt body sonst dunkel) */
+/* CEF: color-scheme dark kann eine undurchsichtige „Canvas“-Fläche erzeugen; transparent als rgba. */
 html {
-  background: transparent !important;
+  color-scheme: normal !important;
+  background: rgba(0, 0, 0, 0) !important;
+  background-color: rgba(0, 0, 0, 0) !important;
 }
 
 body {
   overflow: hidden;
-  background: transparent !important;
-  background-color: transparent !important;
+  background: rgba(0, 0, 0, 0) !important;
+  background-color: rgba(0, 0, 0, 0) !important;
 }
 
 #root {
-  background: transparent !important;
-  background-color: transparent !important;
+  background: rgba(0, 0, 0, 0) !important;
+  background-color: rgba(0, 0, 0, 0) !important;
 }
 
 /* ─── Dynamic Bank Theme CSS Variables ────────────────────────────────────── */
 :root {
+  color-scheme: normal !important;
   --rb-bg: #050505;
   --rb-bg-2: #0c0c0c;
   --rb-surface: rgba(255, 255, 255, 0.035);
