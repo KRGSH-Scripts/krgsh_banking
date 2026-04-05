@@ -1,17 +1,92 @@
 import { useState } from 'react';
-import { Card, Text, Group, Box, rem, SegmentedControl } from '@mantine/core';
-import { LineChart } from '@mantine/charts';
+import {
+  Card,
+  Text,
+  Group,
+  Box,
+  rem,
+  SegmentedControl,
+  ThemeIcon,
+} from '@mantine/core';
+import {
+  IconTrendingDown,
+  IconTrendingUp,
+  IconMinus,
+} from '@tabler/icons-react';
+import {
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import type { TooltipProps } from 'recharts';
+
 import type { Account } from '../../types';
 import {
-  dailyMovementSeries,
-  dailySeriesHasActivity,
+  dailyBalanceOhlcSeries,
   formatMoney,
+  trendFromCloses,
+  type DailyOhlcPoint,
 } from '../../lib/formatters';
 import { useBankingStore } from '../../store/bankingStore';
+import { CandlestickShape } from './CandlestickShape';
 
 interface AnalyticsChartProps {
   account: Account | null;
   t: (key: string, fallback?: string) => string;
+}
+
+function chartMoneyLabel(value: number, currency: string): string {
+  return formatMoney(value, currency);
+}
+
+function BalanceChartTooltip({
+  active,
+  payload,
+  currency,
+  t,
+}: TooltipProps<number, string> & {
+  currency: string;
+  t: (key: string, fallback?: string) => string;
+}) {
+  if (!active || !payload?.length) return null;
+  const row = payload[0]?.payload as DailyOhlcPoint | undefined;
+  if (!row) return null;
+
+  const line = (labelKey: string, fallback: string, v: number) => (
+    <Group justify="space-between" gap="md" wrap="nowrap">
+      <Text size="xs" c="dimmed">
+        {t(labelKey, fallback)}
+      </Text>
+      <Text size="xs" fw={500} style={{ color: 'var(--rb-text)' }}>
+        {formatMoney(v, currency)}
+      </Text>
+    </Group>
+  );
+
+  return (
+    <Box
+      p={rem(10)}
+      style={{
+        background: 'var(--rb-card)',
+        border: '1px solid var(--rb-border)',
+        borderRadius: rem(8),
+        minWidth: rem(200),
+      }}
+    >
+      <Text size="xs" fw={600} mb={rem(6)} style={{ color: 'var(--rb-text)' }}>
+        {row.day}
+      </Text>
+      {line('chart_tooltip_open', 'Eroeffnung', row.open)}
+      {line('chart_tooltip_high', 'Hoch', row.high)}
+      {line('chart_tooltip_low', 'Tief', row.low)}
+      {line('chart_tooltip_close', 'Schluss', row.close)}
+    </Box>
+  );
 }
 
 export default function AnalyticsChart({ account, t }: AnalyticsChartProps) {
@@ -21,62 +96,88 @@ export default function AnalyticsChart({ account, t }: AnalyticsChartProps) {
 
   if (!account) return null;
 
-  const series = dailyMovementSeries(account, dayCount);
-  const hasActivity = dailySeriesHasActivity(series);
+  const series = dailyBalanceOhlcSeries(account, dayCount);
+  const trend = trendFromCloses(series);
 
-  if (!hasActivity) {
-    return (
-      <Card
-        p={rem(20)}
-        style={{
-          background: 'var(--rb-card)',
-          border: '1px solid var(--rb-border)',
-          borderRadius: rem(16),
-        }}
-      >
-        <Group justify="space-between" mb={rem(12)} wrap="wrap">
-          <Box>
-            <Text size="xs" c="dimmed" tt="uppercase" fw={600} lts={0.5}>
-              {t('performance', 'Buchungsbewegung')}
+  const trendLabel =
+    trend.direction === 'up'
+      ? t('chart_trend_up', 'Steigend')
+      : trend.direction === 'down'
+        ? t('chart_trend_down', 'Fallend')
+        : t('chart_trend_flat', 'Stabil');
+
+  const trendIcon =
+    trend.direction === 'up' ? (
+      <IconTrendingUp size={16} stroke={1.75} />
+    ) : trend.direction === 'down' ? (
+      <IconTrendingDown size={16} stroke={1.75} />
+    ) : (
+      <IconMinus size={16} stroke={1.75} />
+    );
+
+  const trendColor =
+    trend.direction === 'up'
+      ? 'var(--rb-inflow)'
+      : trend.direction === 'down'
+        ? 'var(--rb-danger)'
+        : 'var(--rb-text-muted)';
+
+  const pctStr = `${trend.deltaPct >= 0 ? '+' : ''}${trend.deltaPct.toLocaleString('de-DE', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 0,
+  })}%`;
+
+  const headerBlock = (
+    <Group justify="space-between" mb={rem(16)} wrap="wrap" align="flex-start">
+      <Box style={{ flex: '1 1 200px' }}>
+        <Text size="xs" c="dimmed" tt="uppercase" fw={600} lts={0.5}>
+          {t('performance', 'Buchungsbewegung')}
+        </Text>
+        <Group gap="sm" align="center" wrap="wrap" mt={rem(4)}>
+          <Text fw={600} style={{ color: 'var(--rb-text)' }}>
+            {t('chart_balance_title', 'Kontostand & Tagesrange')}
+          </Text>
+          <Group gap={6} align="center" wrap="nowrap">
+            <ThemeIcon
+              variant="light"
+              size="sm"
+              radius="md"
+              style={{
+                background: 'var(--rb-surface2, rgba(0,0,0,0.2))',
+                color: trendColor,
+              }}
+            >
+              {trendIcon}
+            </ThemeIcon>
+            <Text size="sm" fw={600} style={{ color: trendColor }}>
+              {pctStr}
             </Text>
-            <Text fw={600} style={{ color: 'var(--rb-text)' }}>
-              {t('chart_daily_title', 'Taegliche Buchungen')}
+            <Text size="sm" c="dimmed">
+              {trendLabel}
             </Text>
-            <Text size="sm" mt={rem(4)} style={{ color: 'var(--rb-text-muted)' }}>
-              {t(
-                'chart_daily_subtitle',
-                'Summen pro Kalendertag (Einzahlung und Auszahlung)',
-              )}
-            </Text>
-          </Box>
-          <SegmentedControl
-            value={range}
-            onChange={(v) => setRange(v as '7' | '30')}
-            data={[
-              { value: '7', label: t('chart_range_7', '7 Tage') },
-              { value: '30', label: t('chart_range_30', '30 Tage') },
-            ]}
-            size="xs"
-            styles={{
-              root: { background: 'var(--rb-surface2, rgba(0,0,0,0.2))' },
-            }}
-          />
+          </Group>
         </Group>
-        <Text style={{ color: 'var(--rb-text-muted)' }} size="sm">
+        <Text size="sm" mt={rem(4)} style={{ color: 'var(--rb-text-muted)' }}>
           {t(
-            'chart_no_activity_period',
-            'Keine Buchungen in diesem Zeitraum',
+            'chart_balance_subtitle',
+            'Linie: Schlusskontostand pro Tag. Kerzen: Tagesverlauf (OHLC).',
           )}
         </Text>
-      </Card>
-    );
-  }
-
-  const chartData = series.map((p) => ({
-    day: p.day,
-    deposit: p.deposit,
-    withdraw: p.withdraw,
-  }));
+      </Box>
+      <SegmentedControl
+        value={range}
+        onChange={(v) => setRange(v as '7' | '30')}
+        data={[
+          { value: '7', label: t('chart_range_7', '7 Tage') },
+          { value: '30', label: t('chart_range_30', '30 Tage') },
+        ]}
+        size="xs"
+        styles={{
+          root: { background: 'var(--rb-surface2, rgba(0,0,0,0.2))' },
+        }}
+      />
+    </Group>
+  );
 
   return (
     <Card
@@ -87,65 +188,99 @@ export default function AnalyticsChart({ account, t }: AnalyticsChartProps) {
         borderRadius: rem(16),
       }}
     >
-      <Group justify="space-between" mb={rem(16)} wrap="wrap" align="flex-start">
-        <Box>
-          <Text size="xs" c="dimmed" tt="uppercase" fw={600} lts={0.5}>
-            {t('performance', 'Buchungsbewegung')}
+      {headerBlock}
+
+      <Group gap="lg" mb={rem(8)} wrap="wrap">
+        <Group gap={6} align="center">
+          <Box
+            w={rem(14)}
+            h={rem(3)}
+            style={{
+              background: 'var(--rb-accent)',
+              borderRadius: rem(2),
+            }}
+          />
+          <Text size="xs" c="dimmed">
+            {t('chart_balance_line', 'Schlusskontostand')}
           </Text>
-          <Text fw={600} style={{ color: 'var(--rb-text)' }}>
-            {t('chart_daily_title', 'Taegliche Buchungen')}
+        </Group>
+        <Group gap={6} align="center">
+          <Box
+            w={rem(10)}
+            h={rem(10)}
+            style={{
+              background: 'var(--rb-inflow)',
+              borderRadius: rem(2),
+            }}
+          />
+          <Text size="xs" c="dimmed">
+            {t('chart_candle_bull', 'Tagesschluss >= Eroeffnung')}
           </Text>
-          <Text size="sm" mt={rem(4)} style={{ color: 'var(--rb-text-muted)' }}>
-            {t(
-              'chart_daily_subtitle',
-              'Summen pro Kalendertag (Einzahlung und Auszahlung)',
-            )}
+        </Group>
+        <Group gap={6} align="center">
+          <Box
+            w={rem(10)}
+            h={rem(10)}
+            style={{
+              background: 'var(--rb-danger)',
+              borderRadius: rem(2),
+            }}
+          />
+          <Text size="xs" c="dimmed">
+            {t('chart_candle_bear', 'Tagesschluss < Eroeffnung')}
           </Text>
-        </Box>
-        <SegmentedControl
-          value={range}
-          onChange={(v) => setRange(v as '7' | '30')}
-          data={[
-            { value: '7', label: t('chart_range_7', '7 Tage') },
-            { value: '30', label: t('chart_range_30', '30 Tage') },
-          ]}
-          size="xs"
-          styles={{
-            root: { background: 'var(--rb-surface2, rgba(0,0,0,0.2))' },
-          }}
-        />
+        </Group>
       </Group>
 
-      <LineChart
-        h={200}
-        data={chartData}
-        dataKey="day"
-        series={[
-          {
-            name: 'deposit',
-            color: 'var(--rb-inflow)',
-            label: t('deposit_but', 'Einzahlung'),
-          },
-          {
-            name: 'withdraw',
-            color: 'var(--rb-danger)',
-            label: t('withdraw_but', 'Auszahlung'),
-          },
-        ]}
-        curveType="monotone"
-        strokeWidth={2}
-        withDots={dayCount === 7}
-        dotProps={{ r: 3 }}
-        tooltipAnimationDuration={200}
-        valueFormatter={(value) => formatMoney(value, currency)}
-        gridAxis="x"
-        withLegend
-        withTooltip
-        styles={{
-          root: { background: 'transparent' },
-          axis: { stroke: 'var(--rb-border)' },
-        }}
-      />
+      <ResponsiveContainer width="100%" height={220}>
+        <ComposedChart
+          layout="horizontal"
+          data={series}
+          margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+        >
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="var(--rb-border)"
+            vertical={false}
+          />
+          <XAxis
+            dataKey="day"
+            tick={{ fill: 'var(--rb-text-muted)', fontSize: 11 }}
+            axisLine={{ stroke: 'var(--rb-border)' }}
+            tickLine={false}
+          />
+          <YAxis
+            tick={{ fill: 'var(--rb-text-muted)', fontSize: 11 }}
+            axisLine={{ stroke: 'var(--rb-border)' }}
+            tickLine={false}
+            tickFormatter={(v) => chartMoneyLabel(Number(v), currency)}
+            width={56}
+          />
+          <Tooltip
+            content={
+              <BalanceChartTooltip currency={currency} t={t} />
+            }
+          />
+          <Bar
+            layout="horizontal"
+            dataKey={(d: DailyOhlcPoint) => [d.low, d.high]}
+            fill="transparent"
+            shape={CandlestickShape}
+            isAnimationActive={false}
+            legendType="none"
+          />
+          <Line
+            type="monotone"
+            dataKey="close"
+            name={t('chart_balance_line', 'Schlusskontostand')}
+            stroke="var(--rb-accent)"
+            strokeWidth={2}
+            dot={dayCount === 7 ? { r: 3, fill: 'var(--rb-accent)' } : false}
+            activeDot={{ r: 4 }}
+            isAnimationActive={false}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
     </Card>
   );
 }

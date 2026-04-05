@@ -100,15 +100,6 @@ export function metricsForAccount(account: Account): AccountMetrics {
   return { inflow, outflow };
 }
 
-export interface DailyMovementPoint {
-  /** Short label for the chart X axis (local calendar day). */
-  day: string;
-  /** Local calendar day `YYYY-MM-DD`. */
-  dateKey: string;
-  deposit: number;
-  withdraw: number;
-}
-
 function localDateKeyFromUnix(sec: number): string {
   const d = new Date(sec * 1000);
   const y = d.getFullYear();
@@ -117,11 +108,65 @@ function localDateKeyFromUnix(sec: number): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Last `dayCount` calendar days (local), oldest → newest; sums per day. */
-export function dailyMovementSeries(
+function addDaysLocal(base: Date, deltaDays: number): Date {
+  const d = new Date(base);
+  d.setDate(d.getDate() + deltaDays);
+  return d;
+}
+
+function dateKeyFromLocalDate(d: Date): string {
+  const y = d.getFullYear();
+  const mo = d.getMonth();
+  const da = d.getDate();
+  return `${y}-${String(mo + 1).padStart(2, '0')}-${String(da).padStart(2, '0')}`;
+}
+
+function dayLabelFromLocalDate(d: Date): string {
+  return d.toLocaleDateString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+  });
+}
+
+function compareDateKeys(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/** Balance immediately before the chronologically oldest transaction (or current amount if none). */
+function balanceBeforeOldestTx(account: Account): number {
+  const txs = [...(account.transactions ?? [])].filter((tx) =>
+    Number.isFinite(Number(tx.time)),
+  );
+  txs.sort((a, b) => (Number(b.time) || 0) - (Number(a.time) || 0));
+  let b = Number(account.amount) || 0;
+  for (const tx of txs) {
+    const amt = Math.abs(Number(tx.amount) || 0);
+    const type = (tx.trans_type ?? '').toLowerCase();
+    if (type === 'deposit') b -= amt;
+    else b += amt;
+  }
+  return b;
+}
+
+export interface DailyOhlcPoint {
+  /** Short label for the chart X axis (local calendar day). */
+  day: string;
+  /** Local calendar day `YYYY-MM-DD`. */
+  dateKey: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+/**
+ * Last `dayCount` calendar days (local), oldest → newest.
+ * Reconstructs running balance from `account.amount` and full transaction history.
+ */
+export function dailyBalanceOhlcSeries(
   account: Account,
   dayCount: 7 | 30,
-): DailyMovementPoint[] {
+): DailyOhlcPoint[] {
   const now = new Date();
   const todayStart = new Date(
     now.getFullYear(),
@@ -132,49 +177,88 @@ export function dailyMovementSeries(
     0,
     0,
   );
-  const firstDayStart = new Date(todayStart);
-  firstDayStart.setDate(firstDayStart.getDate() - (dayCount - 1));
+  const firstWindowDay = new Date(todayStart);
+  firstWindowDay.setDate(firstWindowDay.getDate() - (dayCount - 1));
+  const dayBeforeWindow = addDaysLocal(firstWindowDay, -1);
+  const simStartKey = dateKeyFromLocalDate(dayBeforeWindow);
+  const windowStartKey = dateKeyFromLocalDate(firstWindowDay);
+  const endKey = dateKeyFromLocalDate(todayStart);
 
-  const startSec = Math.floor(firstDayStart.getTime() / 1000);
-  const endSec =
-    Math.floor(todayStart.getTime() / 1000) + 24 * 60 * 60 - 1;
+  const initial = balanceBeforeOldestTx(account);
+  const txsAsc = [...(account.transactions ?? [])]
+    .filter((tx) => Number.isFinite(Number(tx.time)))
+    .sort((a, b) => (Number(a.time) || 0) - (Number(b.time) || 0));
 
-  const points: DailyMovementPoint[] = [];
-  const cursor = new Date(firstDayStart);
-  for (let i = 0; i < dayCount; i++) {
-    const y = cursor.getFullYear();
-    const mo = cursor.getMonth();
-    const da = cursor.getDate();
-    const dateKey = `${y}-${String(mo + 1).padStart(2, '0')}-${String(da).padStart(2, '0')}`;
-    const day = cursor.toLocaleDateString('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
+  const byDay = new Map<string, typeof txsAsc>();
+  for (const tx of txsAsc) {
+    const key = localDateKeyFromUnix(Number(tx.time));
+    const list = byDay.get(key);
+    if (list) list.push(tx);
+    else byDay.set(key, [tx]);
+  }
+
+  let running = initial;
+  for (const tx of txsAsc) {
+    const key = localDateKeyFromUnix(Number(tx.time));
+    if (compareDateKeys(key, simStartKey) >= 0) break;
+    const amt = Math.abs(Number(tx.amount) || 0);
+    if ((tx.trans_type ?? '').toLowerCase() === 'deposit') running += amt;
+    else running -= amt;
+  }
+
+  const built: DailyOhlcPoint[] = [];
+  const cursor = new Date(dayBeforeWindow);
+  while (compareDateKeys(dateKeyFromLocalDate(cursor), endKey) <= 0) {
+    const dateKey = dateKeyFromLocalDate(cursor);
+    const open = running;
+    let high = open;
+    let low = open;
+    const dayTxs = byDay.get(dateKey) ?? [];
+    for (const tx of dayTxs) {
+      const amt = Math.abs(Number(tx.amount) || 0);
+      if ((tx.trans_type ?? '').toLowerCase() === 'deposit') running += amt;
+      else running -= amt;
+      high = Math.max(high, running);
+      low = Math.min(low, running);
+    }
+    const close = running;
+    built.push({
+      day: dayLabelFromLocalDate(cursor),
+      dateKey,
+      open,
+      high,
+      low,
+      close,
     });
-    points.push({ day, dateKey, deposit: 0, withdraw: 0 });
     cursor.setDate(cursor.getDate() + 1);
   }
 
-  const byKey = new Map(
-    points.map((p) => [p.dateKey, p] as const),
-  );
-
-  for (const tx of account.transactions ?? []) {
-    const t = Number(tx.time);
-    if (!Number.isFinite(t) || t < startSec || t > endSec) continue;
-    const key = localDateKeyFromUnix(t);
-    const row = byKey.get(key);
-    if (!row) continue;
-    const amt = Math.abs(Number(tx.amount) || 0);
-    if ((tx.trans_type ?? '').toLowerCase() === 'deposit')
-      row.deposit += amt;
-    else row.withdraw += amt;
-  }
-
-  return points;
+  return built.filter((p) => compareDateKeys(p.dateKey, windowStartKey) >= 0);
 }
 
-export function dailySeriesHasActivity(points: DailyMovementPoint[]): boolean {
-  return points.some((p) => p.deposit > 0 || p.withdraw > 0);
+export type TrendDirection = 'up' | 'down' | 'flat';
+
+export interface TrendFromCloses {
+  delta: number;
+  deltaPct: number;
+  direction: TrendDirection;
+}
+
+const TREND_FLAT_EPS = 1e-6;
+
+export function trendFromCloses(points: DailyOhlcPoint[]): TrendFromCloses {
+  if (points.length === 0) {
+    return { delta: 0, deltaPct: 0, direction: 'flat' };
+  }
+  const first = points[0]!.close;
+  const last = points[points.length - 1]!.close;
+  const delta = last - first;
+  const denom = Math.max(Math.abs(first), 1);
+  const deltaPct = (delta / denom) * 100;
+  let direction: TrendDirection = 'flat';
+  if (delta > TREND_FLAT_EPS) direction = 'up';
+  else if (delta < -TREND_FLAT_EPS) direction = 'down';
+  return { delta, deltaPct, direction };
 }
 
 export function sumAccountBalances(accounts: Account[]): number {
