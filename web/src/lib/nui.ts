@@ -1,9 +1,18 @@
 import type { Account, Transaction } from '../types';
 
-export const RESOURCE_NAME =
-  typeof GetParentResourceName === 'function'
-    ? GetParentResourceName()
-    : 'krgsh_banking';
+function getGlobalGetParentResourceName(): (() => string) | undefined {
+  const g = globalThis as unknown as { GetParentResourceName?: () => string };
+  return typeof g.GetParentResourceName === 'function'
+    ? g.GetParentResourceName
+    : undefined;
+}
+
+/** True wenn die Seite in der FiveM-NUI läuft (nicht im Vite-Browser). */
+export function isNuiRuntime(): boolean {
+  return getGlobalGetParentResourceName() !== undefined;
+}
+
+export const RESOURCE_NAME = getGlobalGetParentResourceName()?.() ?? 'krgsh_banking';
 
 export async function postNui<T = unknown>(
   action: string,
@@ -49,5 +58,3 @@ export function getAllTransactions(accounts: Account[]): Transaction[] {
     .sort((a, b) => (Number(b.time) || 0) - (Number(a.time) || 0));
 }
 
-// FiveM NUI type declaration
-declare function GetParentResourceName(): string;

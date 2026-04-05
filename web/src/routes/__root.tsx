@@ -17,7 +17,7 @@ import { useNuiMessage } from '../hooks/useNuiMessage';
 import { useBankingStore } from '../store/bankingStore';
 import { useAccounts } from '../hooks/useAccounts';
 import { useLocale } from '../hooks/useLocale';
-import { postNui } from '../lib/nui';
+import { isNuiRuntime, postNui } from '../lib/nui';
 import { applyThemeCssVars } from '../lib/theme';
 import { DEFAULT_THEME } from '../lib/theme';
 
@@ -42,9 +42,10 @@ function RootLayout() {
   // Start NUI message listener
   useNuiMessage();
 
-  // Boot preview data when not running in FiveM
+  // Boot preview data nur im Vite-Browser — in der NUI existiert GetParentResourceName(),
+  // invokeNative dagegen oft nicht; sonst bliebe die Demo-UI dauerhaft sichtbar (schwarzer Vollbild-Layer).
   useEffect(() => {
-    if (typeof window !== 'undefined' && typeof (window as unknown as { invokeNative?: unknown }).invokeNative !== 'undefined') return;
+    if (isNuiRuntime()) return;
     setTimeout(() => {
       window.dispatchEvent(new MessageEvent('message', {
         data: {
@@ -167,7 +168,7 @@ function RootLayout() {
                 <LoadingOverlay
                   visible={loading}
                   zIndex={500}
-                  overlayProps={{ blur: 4, bg: 'rgba(0,0,0,0.7)' }}
+                  overlayProps={{ blur: 0, bg: 'rgba(0,0,0,0.65)' }}
                   loaderProps={{ color: 'var(--rb-accent)', size: 'md' }}
                 />
 
