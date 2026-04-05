@@ -261,14 +261,6 @@ export default function AnalyticsChart({ account, t }: AnalyticsChartProps) {
               <BalanceChartTooltip currency={currency} t={t} />
             }
           />
-          <Bar
-            layout="horizontal"
-            dataKey={(d: DailyOhlcPoint) => [d.low, d.high]}
-            fill="transparent"
-            shape={CandlestickShape}
-            isAnimationActive={false}
-            legendType="none"
-          />
           <Line
             type="monotone"
             dataKey="close"
@@ -278,6 +270,14 @@ export default function AnalyticsChart({ account, t }: AnalyticsChartProps) {
             dot={dayCount === 7 ? { r: 3, fill: 'var(--rb-accent)' } : false}
             activeDot={{ r: 4 }}
             isAnimationActive={false}
+          />
+          <Bar
+            layout="horizontal"
+            dataKey={(d: DailyOhlcPoint) => [d.low, d.high]}
+            fill="transparent"
+            shape={CandlestickShape}
+            isAnimationActive={false}
+            legendType="none"
           />
         </ComposedChart>
       </ResponsiveContainer>
