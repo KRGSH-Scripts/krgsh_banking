@@ -39,13 +39,194 @@ local function accountNumberForEntry(account, cid, lenNonPersonal)
     return formatSyntheticNumber(account.id, lenNonPersonal)
 end
 
-local function cloneAccountForBankData(account, cid, lenNonPersonal)
+local function cloneAccountForBankData(account, cid, lenNonPersonal, extra)
     local out = {}
     for k, v in pairs(account) do
-        out[k] = v
+        if k ~= 'auth' and k ~= 'cards' then
+            out[k] = v
+        end
     end
     out.accountNumber = accountNumberForEntry(account, cid, lenNonPersonal)
+    if type(extra) == 'table' then
+        for k, v in pairs(extra) do
+            out[k] = v
+        end
+    end
     return out
+end
+
+---@param raw string|nil
+---@return { id: string, pinHash: string|nil }[]
+local function normalizeCardsFromDb(raw)
+    if type(raw) ~= 'string' or raw == '' then return {} end
+    local ok, decoded = pcall(json.decode, raw)
+    if not ok or type(decoded) ~= 'table' then return {} end
+    local out = {}
+    for i = 1, #decoded do
+        local c = decoded[i]
+        if type(c) == 'table' and type(c.id) == 'string' and c.id ~= '' then
+            out[#out + 1] = { id = c.id, pinHash = c.pinHash }
+        end
+    end
+    return out
+end
+
+local cardSessions = {}
+
+local function pinSecret()
+    return GetConvar('krgsh_banking:card_pin_secret', Config.bankCardPinSecret or 'change_me')
+end
+
+local function hashBankPin(accountId, cardId, pin)
+    local s = tostring(pinSecret()) .. '|' .. tostring(accountId) .. '|' .. tostring(cardId) .. '|' .. tostring(pin)
+    local h = 5381
+    for round = 1, 3 do
+        for i = 1, #s do
+            h = ((h * 33) + string.byte(s, i)) % 2147483647
+        end
+        s = tostring(h) .. '#' .. tostring(round)
+    end
+    return ('%x'):format(h)
+end
+
+local function verifyBankPin(accountId, cardId, pin, pinHash)
+    if not pinHash or pinHash == '' then return true end
+    if type(pin) ~= 'string' or pin == '' then return false end
+    return hashBankPin(accountId, cardId, pin) == pinHash
+end
+
+local function setCardSession(src, accountId, cardId)
+    cardSessions[src] = cardSessions[src] or {}
+    local secs = tonumber(Config.bankCardPinSessionSeconds) or 600
+    cardSessions[src][accountId] = { cardId = cardId, expires = os.time() + secs }
+end
+
+local function isCardSessionValid(src, accountId, cardId)
+    local s = cardSessions[src] and cardSessions[src][accountId]
+    if not s or s.expires < os.time() then return false end
+    return s.cardId == cardId
+end
+
+AddEventHandler('playerDropped', function()
+    cardSessions[source] = nil
+end)
+
+---@param acc table
+---@param cardId string
+local function findRegisteredCard(acc, cardId)
+    local list = acc.cards
+    if type(list) ~= 'table' then return nil end
+    for i = 1, #list do
+        local c = list[i]
+        if type(c) == 'table' and c.id == cardId then return c end
+    end
+    return nil
+end
+
+local function inventoryCardIdsForAccount(src, accountId)
+    local set = {}
+    local items = FindBankCardItems(src, Config.bankCardItem or 'bank_card')
+    for i = 1, #items do
+        local m = items[i].metadata or {}
+        if m.accountId == accountId and type(m.cardId) == 'string' and m.cardId ~= '' then
+            set[m.cardId] = true
+        end
+    end
+    return set
+end
+
+--- Returns allow, needsPin, activeCardId
+local function canViewSharedAccountDetails(src, accountId)
+    local acc = cachedAccounts[accountId]
+    if not acc or not acc.creator then return false, false, nil end
+    local Player = GetPlayerObject(src)
+    if not Player then return false, false, nil end
+    local cid = GetIdentifier(Player)
+    if acc.creator == cid then return true, false, nil end
+    if acc.auth[cid] then return true, false, nil end
+    local phys = inventoryCardIdsForAccount(src, accountId)
+    for cardId in pairs(phys) do
+        local crec = findRegisteredCard(acc, cardId)
+        if crec then
+            local pinH = crec.pinHash
+            if type(pinH) == 'string' and pinH ~= '' then
+                if not isCardSessionValid(src, accountId, cardId) then
+                    return true, true, cardId
+                end
+            end
+            return true, false, cardId
+        end
+    end
+    return false, false, nil
+end
+
+local function canUseSharedAccountForBanking(src, accountId)
+    local allow, needPin = canViewSharedAccountDetails(src, accountId)
+    return allow and not needPin
+end
+
+local function canUseJobOrGangAccount(src, accountId)
+    local acc = cachedAccounts[accountId]
+    if not acc or acc.creator then return false end
+    local Player = GetPlayerObject(src)
+    if not Player then return false end
+    local jobs = GetJobs(Player)
+    if type(jobs) == 'table' and jobs[1] then
+        for k = 1, #jobs do
+            if jobs[k].name == accountId and IsJobAuth(jobs[k].name, jobs[k].grade) then return true end
+        end
+    elseif type(jobs) == 'table' and jobs.name and jobs.name == accountId and IsJobAuth(jobs.name, jobs.grade) then
+        return true
+    end
+    local gang = GetGang(Player)
+    if gang and gang ~= 'none' and gang == accountId and IsGangAuth(Player, gang) then return true end
+    return false
+end
+
+--- Personal `fromAccount` uses citizen id and has no row in cachedAccounts.
+function canUseCachedAccountForBanking(src, accountId)
+    local acc = cachedAccounts[accountId]
+    if not acc then return false end
+    if acc.creator then
+        return canUseSharedAccountForBanking(src, accountId)
+    end
+    return canUseJobOrGangAccount(src, accountId)
+end
+
+local function mergeSharedAccountIdSet(src, cid)
+    local set = {}
+    local list = cachedPlayers[cid] and cachedPlayers[cid].accounts
+    if type(list) == 'table' then
+        for i = 1, #list do
+            local aid = list[i]
+            if aid then set[aid] = true end
+        end
+    end
+    local items = FindBankCardItems(src, Config.bankCardItem or 'bank_card')
+    for i = 1, #items do
+        local m = items[i].metadata or {}
+        local aid = m.accountId
+        if aid and cachedAccounts[aid] and cachedAccounts[aid].creator then
+            set[aid] = true
+        end
+    end
+    return set
+end
+
+local function persistAccountCards(accountId)
+    local acc = cachedAccounts[accountId]
+    if not acc then return end
+    MySQL.update('UPDATE bank_accounts_new SET cards = ? WHERE id = ?', { json.encode(acc.cards or {}), accountId })
+end
+
+local function removeAccountFromPlayerCache(pcid, account)
+    if not pcid or not cachedPlayers[pcid] or not cachedPlayers[pcid].accounts then return end
+    local na = {}
+    for i = 1, #cachedPlayers[pcid].accounts do
+        local a = cachedPlayers[pcid].accounts[i]
+        if a and a ~= account then na[#na + 1] = a end
+    end
+    cachedPlayers[pcid].accounts = na
 end
 
 CreateThread(function()
@@ -71,7 +252,8 @@ CreateThread(function()
                 amount = v.amount,
                 transactions = json.decode(v.transactions),
                 auth = {},
-                creator = v.creator
+                creator = v.creator,
+                cards = normalizeCardsFromDb(v.cards),
             }
             if #v.auth >= 1 then
                 for k=1, #v.auth do
@@ -92,10 +274,11 @@ CreateThread(function()
             amount = 0,
             transactions = {},
             auth = {},
-            creator = nil
+            creator = nil,
+            cards = {},
         }
-        query[#query + 1] = {"INSERT INTO bank_accounts_new (id, amount, transactions, auth, isFrozen, creator, display_label) VALUES (?, ?, ?, ?, ?, NULL, NULL) ",
-        { group, cachedAccounts[group].amount, json.encode(cachedAccounts[group].transactions), json.encode({}), cachedAccounts[group].frozen }}
+        query[#query + 1] = {"INSERT INTO bank_accounts_new (id, amount, transactions, auth, isFrozen, creator, display_label, cards) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?) ",
+        { group, cachedAccounts[group].amount, json.encode(cachedAccounts[group].transactions), json.encode({}), cachedAccounts[group].frozen, json.encode({}) }}
     end
     for job in pairs(jobs) do
         if not cachedAccounts[job] then
@@ -174,11 +357,19 @@ local function getBankData(source)
         end
     end
 
-    local sharedAccounts = cachedPlayers[cid].accounts
-    for k=1, #sharedAccounts do
-        local sAccount = cachedAccounts[sharedAccounts[k]]
-        if sAccount then
-            bankData[#bankData+1] = cloneAccountForBankData(sAccount, cid, plen)
+    local sharedIdSet = mergeSharedAccountIdSet(source, cid)
+    for accountId in pairs(sharedIdSet) do
+        local sAccount = cachedAccounts[accountId]
+        if sAccount and sAccount.creator then
+            local allow, needPin, cardId = canViewSharedAccountDetails(source, accountId)
+            if allow then
+                local extra = {}
+                if needPin then
+                    extra.needsBankCardPin = true
+                    extra.bankCardId = cardId
+                end
+                bankData[#bankData+1] = cloneAccountForBankData(sAccount, cid, plen, extra)
+            end
         end
     end
 
@@ -361,6 +552,7 @@ BankingDeps = {
     genTransactionID = genTransactionID,
     sanitizeMessage = sanitizeMessage,
     UpdatePlayerAccount = UpdatePlayerAccount,
+    canUseCachedAccountForBanking = canUseCachedAccountForBanking,
 }
 
 lib.callback.register("krgsh_banking:server:deposit", function(source, data)
@@ -368,6 +560,10 @@ lib.callback.register("krgsh_banking:server:deposit", function(source, data)
     local amount = tonumber(data.amount)
     if not amount or amount < 1 then
         Notify(source, {title = locale("bank_name"), description = locale("invalid_amount", "deposit"), type = "error"})
+        return false
+    end
+    if cachedAccounts[data.fromAccount] and not canUseCachedAccountForBanking(source, data.fromAccount) then
+        Notify(source, { title = locale("bank_name"), description = locale("bank_no_account_access"), type = "error" })
         return false
     end
     local name = GetCharacterName(Player)
@@ -413,6 +609,10 @@ lib.callback.register('krgsh_banking:server:withdraw', function(source, data)
         Notify(source, {title = locale("bank_name"), description = locale("invalid_amount", "withdraw"), type = "error"})
         return false
     end
+    if cachedAccounts[data.fromAccount] and not canUseCachedAccountForBanking(source, data.fromAccount) then
+        Notify(source, { title = locale("bank_name"), description = locale("bank_no_account_access"), type = "error" })
+        return false
+    end
     local name = GetCharacterName(Player)
     local funds = GetFunds(Player)
     if not data.comment or data.comment == "" then data.comment = locale("comp_transaction", name, "withdrawed", amount) else data.comment = sanitizeMessage(data.comment) end
@@ -442,6 +642,10 @@ lib.callback.register('krgsh_banking:server:transfer', function(source, data)
     local amount = tonumber(data.amount)
     if not amount or amount < 1 then
         Notify(source, {title = locale("bank_name"), description = locale("invalid_amount", "transfer"), type = "error"})
+        return false
+    end
+    if cachedAccounts[data.fromAccount] and not canUseCachedAccountForBanking(source, data.fromAccount) then
+        Notify(source, { title = locale("bank_name"), description = locale("bank_no_account_access"), type = "error" })
         return false
     end
     local name = GetCharacterName(Player)
@@ -500,7 +704,7 @@ lib.callback.register('krgsh_banking:server:createSharedAccount', function(sourc
         return false
     end
     local cid = GetIdentifier(Player)
-    local targetLen = personalIdLen(cid)
+    local targetLen = math.min(personalIdLen(cid) + 1, 21)
     local accountId = generateSharedAccountId(targetLen)
     if not accountId then
         Notify(source, { title = locale("bank_name"), description = locale("create_account_failed"), type = "error" })
@@ -516,20 +720,100 @@ lib.callback.register('krgsh_banking:server:createSharedAccount', function(sourc
         amount = 0,
         transactions = {},
         auth = { [cid] = true },
-        creator = cid
+        creator = cid,
+        cards = {},
     }
     cachedPlayers[cid].accounts[#cachedPlayers[cid].accounts+1] = accountId
     MySQL.insert(
-        "INSERT INTO bank_accounts_new (id, amount, transactions, auth, isFrozen, creator, display_label) VALUES (?, ?, ?, ?, ?, ?, ?) ",
-        { accountId, 0, json.encode({}), json.encode({ cid }), 0, cid, displayName }
+        "INSERT INTO bank_accounts_new (id, amount, transactions, auth, isFrozen, creator, display_label, cards) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ",
+        { accountId, 0, json.encode({}), json.encode({ cid }), 0, cid, displayName, json.encode({}) }
     )
     return getBankData(source)
+end)
+
+lib.callback.register('krgsh_banking:server:verifyBankCardPin', function(source, data)
+    data = type(data) == 'table' and data or {}
+    local accountId, cardId, pin = data.accountId, data.cardId, data.pin
+    if type(accountId) ~= 'string' or type(cardId) ~= 'string' then return false end
+    local acc = cachedAccounts[accountId]
+    if not acc then return false end
+    local crec = findRegisteredCard(acc, cardId)
+    if not crec then return false end
+    local phys = inventoryCardIdsForAccount(source, accountId)
+    if not phys[cardId] then return false end
+    if not verifyBankPin(accountId, cardId, pin, crec.pinHash) then return false end
+    setCardSession(source, accountId, cardId)
+    return getBankData(source)
+end)
+
+lib.callback.register('krgsh_banking:server:issueBankCard', function(source, data)
+    data = type(data) == 'table' and data or {}
+    local accountId = data.accountId
+    if type(accountId) ~= 'string' then return false end
+    local acc = cachedAccounts[accountId]
+    local Player = GetPlayerObject(source)
+    if not Player or not acc or not acc.creator or acc.creator ~= GetIdentifier(Player) then
+        Notify(source, { title = locale("bank_name"), description = locale("bank_card_no_access"), type = "error" })
+        return false
+    end
+    local pin = data.pin
+    if type(pin) == 'string' and pin ~= '' and #pin < 4 then
+        Notify(source, { title = locale("bank_name"), description = locale("bank_card_pin_short"), type = "error" })
+        return false
+    end
+    local targetSrc = tonumber(data.targetServerId) or source
+    if targetSrc ~= source then
+        local tPlayer = GetPlayerObject(targetSrc)
+        if not tPlayer then
+            Notify(source, { title = locale("bank_name"), description = locale("unknown_player", tostring(targetSrc)), type = "error" })
+            return false
+        end
+        if #(GetEntityCoords(GetPlayerPed(source)) - GetEntityCoords(GetPlayerPed(targetSrc))) > 10.0 then
+            Notify(source, { title = locale("bank_name"), description = locale("too_far_away"), type = "error" })
+            return false
+        end
+    end
+    local fee = math.floor(tonumber(Config.bankCardFee) or 0)
+    local feeType = Config.bankCardFeeAccount == 'cash' and 'cash' or 'bank'
+    if fee > 0 then
+        if not RemoveMoney(Player, fee, feeType, 'bank card') then
+            Notify(source, { title = locale("bank_name"), description = locale("bank_card_fee_fail"), type = "error" })
+            return false
+        end
+    end
+    local newId = genTransactionID()
+    acc.cards = acc.cards or {}
+    local entry = { id = newId, pinHash = nil }
+    if type(pin) == 'string' and pin ~= '' then
+        entry.pinHash = hashBankPin(accountId, newId, pin)
+    end
+    acc.cards[#acc.cards + 1] = entry
+    local bankLabel = type(Config.bankCardInstitution) == 'string' and Config.bankCardInstitution ~= '' and Config.bankCardInstitution or locale('bank_name')
+    local md = {
+        accountId = accountId,
+        cardId = newId,
+        accountName = acc.name,
+        bank = bankLabel,
+        hasPin = entry.pinHash ~= nil,
+        label = ('%s — %s'):format(acc.name, bankLabel),
+    }
+    local ok, err = AddBankCardItem(targetSrc, Config.bankCardItem, md)
+    if not ok then
+        table.remove(acc.cards)
+        if fee > 0 then AddMoney(Player, fee, feeType, 'bank card refund') end
+        Notify(source, { title = locale("bank_name"), description = locale("bank_card_item_fail") .. (type(err) == 'string' and (': ' .. err) or ''), type = "error" })
+        return false
+    end
+    persistAccountCards(accountId)
+    Notify(source, { title = locale("bank_name"), description = locale("bank_card_issued"), type = "success" })
+    return true
 end)
 
 RegisterNetEvent("krgsh_banking:server:getPlayerAccounts", function()
     local Player = GetPlayerObject(source)
     local cid = GetIdentifier(Player)
-    local accounts = cachedPlayers[cid].accounts
+    if not cachedPlayers[cid] then UpdatePlayerAccount(cid) end
+    local accounts = cachedPlayers[cid] and cachedPlayers[cid].accounts or {}
     local data = {}
     if #accounts >= 1 then
         for k=1, #accounts do
@@ -552,9 +836,13 @@ RegisterNetEvent("krgsh_banking:server:viewMemberManagement", function(data)
     local cid = GetIdentifier(Player)
 
     for k,_ in pairs(cachedAccounts[account].auth) do
-        local Player2 = getPlayerData(source, k)
-        if cid ~= GetIdentifier(Player2) then
-            retData.members[k] = GetCharacterName(Player2)
+        if k ~= cid then
+            local Player2 = getPlayerData(source, k)
+            if Player2 then
+                retData.members[k] = GetCharacterName(Player2)
+            else
+                retData.members[k] = tostring(k)
+            end
         end
     end
 
@@ -612,17 +900,31 @@ end)
 RegisterNetEvent('krgsh_banking:server:deleteAccount', function(data)
     local account = data.account
     local Player = GetPlayerObject(source)
+    if not Player then return end
     local cid = GetIdentifier(Player)
-
-    cachedAccounts[account] = nil
-
-    for k=1, #cachedPlayers[cid].accounts do
-        if cachedPlayers[cid].accounts[k] == account then
-            cachedPlayers[cid].accounts[k] = nil
-        end
+    local acc = cachedAccounts[account]
+    if not acc or not acc.creator then
+        Notify(source, { title = locale("bank_name"), description = locale("bank_close_not_shared"), type = "error" })
+        return
     end
-
+    if acc.creator ~= cid then
+        Notify(source, { title = locale("bank_name"), description = locale("illegal_action", GetPlayerName(source)), type = "error" })
+        return
+    end
+    if Config.requireZeroBalanceToClose and (tonumber(acc.amount) or 0) ~= 0 then
+        Notify(source, { title = locale("bank_name"), description = locale("bank_close_nonzero"), type = "error" })
+        return
+    end
+    for authCid in pairs(acc.auth or {}) do
+        removeAccountFromPlayerCache(authCid, account)
+    end
+    removeAccountFromPlayerCache(cid, account)
+    for src, tbl in pairs(cardSessions) do
+        if type(tbl) == 'table' and tbl[account] then tbl[account] = nil end
+    end
+    cachedAccounts[account] = nil
     MySQL.update("DELETE FROM `bank_accounts_new` WHERE id=:id", { id = account })
+    Notify(source, { title = locale("bank_name"), description = locale("bank_close_ok"), type = "success" })
 end)
 
 local find = string.find
@@ -729,15 +1031,17 @@ local function CreateJobAccount(job, initialBalance)
         amount = tonumber(initialBalance) or 0,
         transactions = {},
         auth = {},
-        creator = nil
+        creator = nil,
+        cards = {},
     }
 
-    local success, errorMsg = MySQL.insert("INSERT INTO bank_accounts_new (id, amount, transactions, auth, isFrozen, creator, display_label) VALUES (?, ?, ?, ?, ?, NULL, NULL)", {
+    local success, errorMsg = MySQL.insert("INSERT INTO bank_accounts_new (id, amount, transactions, auth, isFrozen, creator, display_label, cards) VALUES (?, ?, ?, ?, ?, NULL, NULL, ?)", {
         job.name,
         cachedAccounts[job.name].amount,
         json.encode(cachedAccounts[job.name].transactions), -- Convert transactions to JSON
         json.encode(cachedAccounts[job.name].auth), -- Convert auth list to JSON
-        cachedAccounts[job.name].frozen
+        cachedAccounts[job.name].frozen,
+        json.encode({}),
     })
 
     -- Handle potential database errors
@@ -859,7 +1163,7 @@ function ExportHandler(resource, name, cb)
 end
 
 local createTables = {
-    { query = "CREATE TABLE IF NOT EXISTS `bank_accounts_new` (`id` varchar(50) NOT NULL, `amount` int(11) DEFAULT 0, `transactions` longtext DEFAULT '[]', `auth` longtext DEFAULT '[]', `isFrozen` int(11) DEFAULT 0, `creator` varchar(50) DEFAULT NULL, `display_label` varchar(100) DEFAULT NULL, PRIMARY KEY (`id`));", values = nil },
+    { query = "CREATE TABLE IF NOT EXISTS `bank_accounts_new` (`id` varchar(50) NOT NULL, `amount` int(11) DEFAULT 0, `transactions` longtext DEFAULT '[]', `auth` longtext DEFAULT '[]', `isFrozen` int(11) DEFAULT 0, `creator` varchar(50) DEFAULT NULL, `display_label` varchar(100) DEFAULT NULL, `cards` longtext DEFAULT '[]', PRIMARY KEY (`id`));", values = nil },
     { query = "CREATE TABLE IF NOT EXISTS `player_transactions` (`id` varchar(50) NOT NULL, `isFrozen` int(11) DEFAULT 0, `transactions` longtext DEFAULT '[]', PRIMARY KEY (`id`));", values = nil },
     { query = "CREATE TABLE IF NOT EXISTS `bank_payment_instructions` (`id` varchar(64) NOT NULL, `kind` varchar(32) NOT NULL, `debtor_account_id` varchar(64) NOT NULL, `creditor_target` varchar(64) NOT NULL, `amount` int(11) NOT NULL DEFAULT 0, `interval_seconds` int(11) NOT NULL DEFAULT 0, `next_run_at` bigint NOT NULL, `status` varchar(32) NOT NULL, `metadata` longtext NOT NULL, `created_at` bigint NOT NULL, `updated_at` bigint NOT NULL, PRIMARY KEY (`id`), KEY `idx_pi_next_run` (`next_run_at`,`status`));", values = nil }
 }
@@ -868,4 +1172,7 @@ assert(MySQL.transaction.await(createTables), "Failed to create tables")
 
 pcall(function()
     MySQL.query.await('ALTER TABLE `bank_accounts_new` ADD COLUMN `display_label` varchar(100) DEFAULT NULL')
+end)
+pcall(function()
+    MySQL.query.await('ALTER TABLE `bank_accounts_new` ADD COLUMN `cards` longtext DEFAULT \'[]\'')
 end)

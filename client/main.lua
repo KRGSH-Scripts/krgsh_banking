@@ -88,6 +88,38 @@ local function resolveUiTheme(data)
     }
 end
 
+--- Resolve PIN-locked shared accounts (card-bound); returns accounts table or nil if cancelled/failed.
+local function ensureBankCardPins(accounts, depth)
+    depth = (depth or 0) + 1
+    if depth > 12 or not accounts then return accounts end
+    for i = 1, #accounts do
+        local acc = accounts[i]
+        if acc.needsBankCardPin and acc.bankCardId then
+            local input = lib.inputDialog(locale('bank_card_pin_title'), {{
+                type = 'input',
+                label = locale('bank_card_pin_label'),
+                password = true,
+            }})
+            local pin = input and input[1]
+            if not pin or pin == '' then
+                lib.notify({ title = locale('bank_name'), description = locale('bank_card_pin_cancel'), type = 'error' })
+                return nil
+            end
+            local refreshed = lib.callback.await('krgsh_banking:server:verifyBankCardPin', false, {
+                accountId = acc.id,
+                cardId = acc.bankCardId,
+                pin = pin,
+            })
+            if not refreshed then
+                lib.notify({ title = locale('bank_name'), description = locale('bank_card_pin_wrong'), type = 'error' })
+                return nil
+            end
+            return ensureBankCardPins(refreshed, depth)
+        end
+    end
+    return accounts
+end
+
 local function openBankUI(openData)
     openData = type(openData) == 'table' and openData or { atm = openData == true }
     local isAtm = openData.atm == true
@@ -101,6 +133,11 @@ local function openBankUI(openData)
         if not accounts then
             nuiHandler(false)
             lib.notify({title = locale('bank_name'), description = locale('loading_failed'), type = 'error'})
+            return
+        end
+        accounts = ensureBankCardPins(accounts, 0)
+        if not accounts then
+            nuiHandler(false)
             return
         end
         SetTimeout(1000, function()

@@ -7,6 +7,19 @@ Config = {
     paymentInstructionsTrustedResources = {},
     progressbar = 'circle', -- circle or rectangle (Anything other than circle will default to rectangle)
     currency = 'USD', -- USD, EUR, GBP ect.....
+    --- Bank cards (shared accounts): item-based access + optional PIN
+    inventoryProvider = 'jaksam_inventory', -- 'ox_inventory' | 'qb_inventory' | 'jaksam_inventory'
+    --- qb-inventory resource folder is often `qb-inventory` (hyphen); override if yours differs
+    ---inventoryResource = 'qb-inventory',
+    bankCardItem = 'bank_card',
+    bankCardFee = 500,
+    bankCardFeeAccount = 'bank', -- 'bank' | 'cash'
+    --- Display string stored on the card item metadata (`bank` field) for inventory UIs
+    bankCardInstitution = nil, -- nil = use locale key bank_name at issue time
+    bankCardPinSessionSeconds = 600,
+    --- Used with PIN hashing; set convar `krgsh_banking:card_pin_secret` on production servers
+    bankCardPinSecret = 'change_me',
+    requireZeroBalanceToClose = true,
     -- UI theming / bank branding
     -- `theme` is a key from Config.uiThemes and can be overridden per event call / per ped.
     -- Example:

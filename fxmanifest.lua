@@ -22,6 +22,7 @@ client_scripts {
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'server/framework.lua',
+    'server/inventory_cards.lua',
     'server/main.lua',
     'server/payment_instructions.lua',
 }

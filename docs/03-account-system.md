@@ -26,10 +26,20 @@ Das System kennt drei logische Kontentypen, die alle über dieselbe Cache- und D
     frozen      = false,                   -- boolean/number (0|1)
     amount      = 0,                       -- number, aktueller Kontostand
     transactions = {},                     -- array<Transaction>
-    auth        = { ["CID123"] = true },   -- map<citizenid, true> (nur org/shared)
-    creator     = "CID123" or nil          -- string|nil (nur shared accounts)
+    auth        = { ["CID123"] = true },   -- map<citizenid, true> (nur org/shared; Legacy-Mitglieder)
+    creator     = "CID123" or nil,         -- string|nil (nur shared accounts)
+    cards       = { { id = "uuid", pinHash = "..." } }  -- nur serverseitig; JSON in DB `cards`
 }
 ```
+
+### Bankkarten (Shared-Zugriff)
+
+- Aktive Karten pro Shared-Konto liegen in `bank_accounts_new.cards` (JSON-Array mit `id` und optionalem `pinHash`).
+- **Inhaber** (`creator`): Zugriff immer ohne Karte.
+- **Legacy:** weiterhin Zugriff, wenn die eigene CitizenID in `auth` steht (wie zuvor).
+- **Karteninhaber:** gültiges Item `Config.bankCardItem` im Inventar mit Metadaten `accountId` + `cardId`, die zu einem Eintrag in `cards` passen; optionale **PIN** pro Karte (gebunden an die Karte, Sitzung serverseitig nach erfolgreicher Eingabe).
+- `deposit` / `withdraw` / `transfer` (vom Org-/Shared-Konto) prüfen serverseitig `canUseCachedAccountForBanking`.
+- UI-Payload enthält **keine** `auth`- oder `cards`-Details (werden beim Klonen für die NUI entfernt). Konten mit offener PIN zeigen `needsBankCardPin` + `bankCardId` bis zur Verifikation.
 
 ### Personal-Account-Erweiterung (nur im UI-Payload)
 
@@ -75,21 +85,22 @@ Resource Start
 Client: krgsh_banking:client:createAccountMenu ODER NUI „Konto anlegen“
   → Input: Anzeigename (display_label)
   → Server: lib.callback krgsh_banking:server:createSharedAccount
-  → Server generiert eindeutige Kontonummer (PK id)
+  → Server generiert eindeutige Kontonummer (PK id), Ziffernlänge = `personalIdLen(cid) + 1` (max. 21)
   → cachedAccounts[id] anlegen, display_label persistiert
   → cachedPlayers[cid].accounts erweitern
   → MySQL INSERT
 ```
 
-**Löschen:**
+**Schließen / Löschen:**
 ```
 Server: krgsh_banking:server:deleteAccount
+  → nur `creator`, optional Kontostand 0 (`Config.requireZeroBalanceToClose`)
+  → `cachedPlayers` für alle `auth`-CitizenIDs bereinigen; PIN-Sitzungen zum Konto verwerfen
   → cachedAccounts[account] = nil
-  → cachedPlayers[cid].accounts bereinigen
-  → MySQL DELETE
+  → MySQL DELETE (inkl. `cards`)
 ```
 
-**Nur der `creator` kann Shared-Accounts umbenennen und löschen.**
+**Nur der `creator` kann Shared-Accounts umbenennen und schließen.**
 
 ---
 
@@ -102,7 +113,7 @@ Server: krgsh_banking:server:deleteAccount
 1. **Personal:** immer eigenes Konto
 2. **Job:** `cachedAccounts[job.name]` wenn `IsJobAuth(job.name, job.grade) == true`
 3. **Gang:** `cachedAccounts[gang]` wenn `IsGangAuth(Player, gang) == true`
-4. **Shared:** alle IDs aus `cachedPlayers[cid].accounts`
+4. **Shared:** Vereinigung aus `cachedPlayers[cid].accounts` (Legacy `auth LIKE`) **und** Konten, zu denen der Spieler eine **gültige Bankkarte** im Inventar hat (`server/inventory_cards.lua` + `Config.inventoryProvider`)
 
 ### Job-/Gang-Bankberechtigung
 
