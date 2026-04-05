@@ -1,3 +1,10 @@
+---
+title: "Server-Cache-System"
+description: "In-Memory-Cache für Konten und Spieler-Transaktionen: Aufbau, Invalidierung und Performance-Strategie."
+tags: ["fivem", "banking", "lua", "cache", "performance"]
+order: 5
+---
+
 # Server-Cache-System
 
 ## Zweck

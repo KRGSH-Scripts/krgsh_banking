@@ -1,283 +1,462 @@
-# NUI / Frontend-Dokumentation
-
-## Überblick
-
-Die UI ist als **Single-File Vanilla JavaScript** implementiert (`web/public/app.js`, ~1200 Zeilen). Kein Build-Schritt erforderlich – die Datei ist direkt auslieferbar. Das Rendering erfolgt durch string-basiertes HTML-Template-Rendering und `innerHTML`-Updates.
-
+---
+title: "NUI / Frontend"
+description: "React 18 + TypeScript SPA mit Mantine UI, TanStack Router/Query und Zustand: Architektur, NUI-Message-Protokoll, Routing, Theming und Build-Prozess."
+tags: ["fivem", "banking", "react", "typescript", "ui", "nui", "vite", "mantine"]
+order: 6
 ---
 
-## Technischer Aufbau
+# NUI / Frontend-Dokumentation
+
+## 1. Überblick
+
+Die UI ist eine vollständige **React 18 Single Page Application**, gebaut mit Vite 5 und TypeScript. Der Build-Output (`web/public/`) wird als FiveM NUI-Overlay über CEF ausgeliefert.
 
 | Aspekt | Details |
 |---|---|
-| Sprache | Vanilla JavaScript (ES2020+) |
-| Build | Kein Build-Schritt (keine Abhängigkeiten) |
-| Rendering | String-Template + `innerHTML` (kein Virtual DOM) |
-| State | Zentrales `state`-Objekt, vollständig erneuerbar |
-| Theming | CSS Custom Properties (`--rb-*`), dynamisch gesetzt |
-| Fonts | IBM Plex Sans + Manrope (Google Fonts CDN) |
+| Framework | React 18 + TypeScript |
+| Build-Tool | Vite 5 |
+| UI-Bibliothek | Mantine UI v7 (AppShell, Tabs, Modal, Notifications, …) |
+| Routing | TanStack Router v1 (Memory History – kein URL-Routing) |
+| Data Fetching | TanStack Query v5 |
+| Globaler State | Zustand v5 (`useBankingStore`) |
+| Charts | Recharts + `@mantine/charts` |
+| Build-Output | `web/public/index.html`, `web/public/assets/*` |
+
+> **FiveM-Hinweis:** Der Router nutzt `createMemoryHistory`. Es gibt keinerlei URL-Navigation – die gesamte SPA läuft im In-Game-CEF-Browser-Overlay.
 
 ---
 
-## Zentraler State
+## 2. Architektur & Verzeichnisstruktur
 
-```js
-const state = {
-    visible:           false,      // UI-Sichtbarkeit
-    loading:           false,      // Lade-Overlay
-    atm:               false,      // ATM-Modus (true) oder Bank-Modus (false)
-    accounts:          [],         // Array<Account> – vom Server
-    selectedAccountId: null,       // Aktives Konto
-    txSearch:          '',         // Suchbegriff für Transaktionen
-    activeTab:         'overview', // 'overview' | 'transactions' | 'atm'
-    locale:            {},         // Übersetzungs-Map vom Server
-    currency:          'USD',      // Währungscode
-    theme:             { ...DEFAULT_THEME },
-    toast:             '',         // Benachrichtigungstext
-    modal:             null        // { type: 'deposit'|'withdraw'|'transfer' } | null
-};
+```
+web/src/
+  main.tsx                   # React Bootstrap: MantineProvider, QueryClientProvider, RouterProvider
+  store/
+    bankingStore.ts           # Zustand store (useBankingStore)
+  routes/
+    __root.tsx                # RootLayout: AppShell, Sidebar, TopBar, ActionModal, Toast
+    index.tsx                 # Redirect → /overview
+    overview.tsx              # Übersichtsseite
+    transactions.tsx          # Transaktions-Journal
+    atm.tsx                   # ATM-Flow
+    schedules.tsx             # Daueraufträge / Recurring Payments
+    bank-cards.tsx            # Kartenanzeige und -verwaltung
+  components/
+    Sidebar/                  # Kontolisten-Sidebar (nur Bank-Modus)
+    TopBar.tsx                # Header: Bank-Name, Standort, Schließen-Button
+    ActionModal.tsx           # Deposit / Withdraw / Transfer Modal
+    Overview/                 # HeroSection, QuickActions, KpiGrid, AnalyticsChart, RecentActivity
+    ATM/                      # AtmHero, AtmKeypad, AtmRecent, AtmCardPicker, AtmPinEntry
+    Transactions/             # TransactionTable
+  lib/
+    nui.ts                    # postNui, normalizeAccounts, normalizeAtmCards, isNuiRuntime
+    theme.ts                  # DEFAULT_THEME, mergeTheme, applyThemeCssVars
+    formatters.ts             # formatMoney, formatDate, relativeTime
+    transactionJournal.ts     # getAllTransactions – kontenübergreifendes Journal
+  types/                      # TypeScript-Typdefinitionen (Account, Transaction, BankTheme, …)
 ```
 
 ---
 
-## NUI-Message-Protokoll (Server → UI)
+## 3. NUI-Message-Protokoll (Server → UI)
+
+Der Client (FiveM Lua) sendet Nachrichten via `SendNUIMessage`. Die React-App empfängt sie über `window.addEventListener('message', ...)` – implementiert im Hook `useNuiMessage()`.
 
 ### `updateLocale`
-```js
-{ action: 'updateLocale', translations: {}, currency: 'USD' }
+
+Wird beim Ressourcen-Start und beim Spieler-Login gesendet. Setzt Übersetzungen und Währungskürzel.
+
+```json
+{
+  "action": "updateLocale",
+  "translations": {
+    "bank_name": "FLEECA BANK",
+    "deposit": "Einzahlen",
+    "withdraw": "Abheben"
+  },
+  "currency": "USD"
+}
 ```
-Setzt `state.locale` und `state.currency`. Wird beim Einloggen und Ressourcen-Start gesendet.
 
 ### `setLoading`
-```js
-{ action: 'setLoading', status: true }
+
+Zeigt oder versteckt den globalen Lade-Overlay.
+
+```json
+{ "action": "setLoading", "status": true }
 ```
-Zeigt/versteckt den Lade-Overlay.
 
 ### `setVisible`
-```js
+
+Haupt-Payload beim Öffnen der UI (Bank- oder ATM-Modus).
+
+```json
 {
-    action:   'setVisible',
-    status:   true,
-    accounts: [...],      // Array<Account> vom Server (optional accountNumber)
-    loading:  false,
-    atm:      false,
-    canCreateAccounts: false,  // true wenn Bank-Ped createAccounts hat (kein ATM)
-    theme:    { key, name, subtitle, contextLabel, location, logo, colors }
+  "action": "setVisible",
+  "status": true,
+  "accounts": [
+    {
+      "id": "police",
+      "name": "Police Department",
+      "type": "org",
+      "amount": 150000,
+      "frozen": false,
+      "transactions": []
+    }
+  ],
+  "loading": false,
+  "atm": false,
+  "canCreateAccounts": true,
+  "theme": {
+    "key": "FLEECA",
+    "name": "FLEECA BANK",
+    "subtitle": "Your trusted partner",
+    "contextLabel": "Bank",
+    "location": "Downtown",
+    "logo": "img/banks/fleeca-logo.png",
+    "colors": {
+      "accent": "#4ade80",
+      "accentContrast": "#000000",
+      "bg": "#0a0f0d",
+      "bg2": "#111a15"
+    }
+  }
 }
 ```
-Haupt-Payload beim Öffnen der UI. Setzt alle relevanten State-Felder und rendert.
 
-> **Hinweis:** Die ausgelieferte UI kann ein React/Vite-Build (`web/public/app.js`) sein; das Nachrichtenprotokoll bleibt kompatibel (`setVisible`, `accountNumber`, `canCreateAccounts`).
+Im **ATM-Modus** (`"atm": true`) enthält das Payload zusätzlich `atmCards`, wenn `Config.atmCardsOnly = true`:
+
+```json
+{
+  "action": "setVisible",
+  "status": true,
+  "atm": true,
+  "atmCards": [
+    {
+      "accountId": "char1:abc123",
+      "cardId": "card_xyz",
+      "accountName": "Girokonto",
+      "label": "Girokonto (•••• xyz)",
+      "needsPin": true
+    }
+  ],
+  "accounts": [],
+  "theme": { "..." : "..." }
+}
+```
 
 ### `notify`
-```js
-{ action: 'notify', status: "Fehlermeldung" }
+
+Zeigt eine Fehler- oder Status-Benachrichtigung in der UI an (Mantine Notification).
+
+```json
+{ "action": "notify", "status": "Nicht genügend Guthaben." }
 ```
-Zeigt einen Toast/Fehler in der UI an.
 
 ---
 
-## NUI-Callback-Protokoll (UI → Server)
+## 4. NUI-Callback-Protokoll (UI → Server)
 
-Die UI kommuniziert mit dem Server via `fetch POST` an `https://${RESOURCE_NAME}/<action>`:
+Die UI kommuniziert mit dem Lua-Server via `fetch POST` an `https://{GetParentResourceName()}/{action}`. Implementiert in `lib/nui.ts`:
 
-| Action | Payload | Rückgabe |
-|---|---|---|
-| `closeInterface` | `{}` | `'ok'` |
-| `deposit` | `{ fromAccount, amount, comment }` | `Account[]` oder `false` |
-| `withdraw` | `{ fromAccount, amount, comment }` | `Account[]` oder `false` |
-| `transfer` | `{ fromAccount, amount, comment, stateid }` | `Account[]` oder `false` |
-| `createAccount` | `{ displayName }` | `Account[]` oder `false` |
-
-```js
-async function postNui(action, payload) {
-    const response = await fetch(`https://${RESOURCE_NAME}/${action}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json; charset=UTF-8' },
-        body: JSON.stringify(payload || {})
-    });
-    return await response.json();
+```ts
+async function postNui<T>(action: string, payload?: object): Promise<T | false> {
+  const res = await fetch(`https://${GetParentResourceName()}/${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+    body: JSON.stringify(payload ?? {}),
+  });
+  const data = await res.json();
+  return data ?? false;
 }
 ```
 
----
+| Action | Payload | Antwort |
+|---|---|---|
+| `closeInterface` | `{}` | `'ok'` |
+| `deposit` | `{ fromAccount, amount, comment }` | `Account[]` \| `false` |
+| `withdraw` | `{ fromAccount, amount, comment }` | `Account[]` \| `false` |
+| `transfer` | `{ fromAccount, amount, comment, stateid }` | `Account[]` \| `false` |
+| `createAccount` | `{ displayName }` | `Account[]` \| `false` |
+| `listBankCards` | `{}` | `{ personal: CardEntry[], shared: CardEntry[] }` |
+| `issueBankCard` | `{ accountId }` | `Account[]` \| `false` |
+| `setBankCardPin` | `{ accountId, cardId, pin }` | result |
+| `deleteBankCard` | `{ accountId, cardId }` | result |
+| `atmSelectCard` | `{ accountId, cardId, pin? }` | `{ ok, needsPin?, accounts }` |
 
-## UI-Tabs
-
-### Overview-Tab (`activeTab = 'overview'`)
-
-Zeigt für das gewählte Konto:
-- **Hero-Section:** Kontoname, Maske (`XXXX •••• XXXX`), Saldo, letzter Buchungszeitpunkt
-- **Flow-Widget:** Ring-Diagramm (CSS conic-gradient) mit Eingangs-/Ausgangsquote
-- **Quick Actions:** Deposit / Withdraw / Transfer Buttons
-- **KPI-Grid:** Gesamtsaldo aller Konten, Bargeld, Kontoanzahl, letzte Buchung
-- **Analytics-Chart:** Balkendiagramm der letzten 6 Buchungen (CSS-basiert, kein Canvas)
-- **Letzte Aktivität:** 5 neueste Transaktionen als Row-Cards
-
-### Transactions-Tab (`activeTab = 'transactions'`)
-
-- Vollständiges Buchungsjournal aller Konten zusammengeführt
-- Suchfeld (filtert nach: Nachricht, Trans-ID, Empfänger, Account-ID, Account-Name)
-- Responsive Tabelle mit Datum, Konto, Buchung, Beteiligte, Typ, Betrag
-- Eingang/Ausgang farblich hervorgehoben
-
-### ATM-Tab (`activeTab = 'atm'`)
-
-Wird aktiviert wenn `state.atm = true`:
-- Hero-Section mit Kontostand
-- Quick Actions (Deposit/Withdraw/Transfer)
-- Schnellbeträge: `[50, 100, 250, 500, 1000, 2500, 5000, 10000, 15000]`
-- Letzte 5 Transaktionen
-
----
-
-## Sidebar
-
-Immer sichtbar (außer im ATM-Modus):
-- Bank-Name und Subtitle aus Theme
-- Gesamtsaldo + Bargeld
-- Ausgewähltes Konto + letzter Aktivitätsstatus
-- Kontoliste als klickbare Account-Cards
-
----
-
-## Account-Card
-
-```js
-renderAccountCards(accounts) → HTML-String
+**Beispiel – Transfer:**
+```ts
+const accounts = await postNui<Account[]>('transfer', {
+  fromAccount: 'police',
+  amount: 5000,
+  comment: 'Ausrüstung',
+  stateid: '4711',
+});
+if (accounts) queryClient.setQueryData(['banking', 'accounts'], accounts);
 ```
 
-Jede Card zeigt:
-- Kontotyp + Status (aktiv/frozen)
-- Kontoname
-- Maskierte ID (`XXXX •••• XXXX`)
-- Verfügbares Guthaben
-- Theme-Tag (PERSONAL / BUSINESS / ACCOUNT)
-- Letzte Buchung (relativ)
-
-Klick auf Card → `setSelectedAccount(id)` → Re-render
-
 ---
 
-## Action-Modal
+## 5. Globaler State (Zustand)
 
-Öffnet sich für Deposit/Withdraw/Transfer:
+Der gesamte UI-State wird in einem einzigen Zustand-Store (`useBankingStore`) verwaltet.
 
-```html
-<form data-action-type="deposit|withdraw|transfer">
-    <input id="rb-amount"   type="number" ... />
-    <input id="rb-comment"  type="text"   ... />
-    <input id="rb-stateid"  type="text"   ... />  <!-- nur Transfer -->
-</form>
+```ts
+interface BankingState {
+  visible: boolean;
+  loading: boolean;
+  atm: boolean;
+  canCreateAccounts: boolean;
+  selectedAccountId: string | null;
+  atmCards: AtmCardOption[];       // ATM: gefilterte Karten aus Inventory
+  locale: Record<string, string>;
+  currency: string;
+  theme: BankTheme;
+  toast: string | null;
+  modal: ModalState | null;        // { type: 'deposit'|'withdraw'|'transfer', accountId }
+}
 ```
 
-Submit → `submitActionForm(form)` → `postNui(type, payload)` → State-Update
+**Actions:**
+
+| Action | Beschreibung |
+|---|---|
+| `setVisible(status)` | UI ein-/ausblenden |
+| `setLoading(status)` | Lade-Overlay |
+| `setSelectedAccountId(id)` | Aktives Konto wechseln |
+| `setAtmCards(cards)` | ATM-Kartenliste setzen |
+| `setLocale(translations, currency)` | Locale + Währung aktualisieren |
+| `showToast(message)` | Toast-Benachrichtigung anzeigen |
+| `hideToast()` | Toast ausblenden |
+| `openModal(state)` | Action-Modal öffnen |
+| `closeModal()` | Action-Modal schließen |
+
+**Verwendung in Komponenten:**
+```ts
+const { selectedAccountId, setSelectedAccountId } = useBankingStore();
+```
 
 ---
 
-## Theming-System
+## 6. Routing (TanStack Router)
+
+Das Routing basiert auf **TanStack Router v1** mit `createMemoryHistory` – es gibt keine URL-basierten Navigationen.
+
+| Route | Komponente | Inhalt |
+|---|---|---|
+| `/` | `index.tsx` | Redirect → `/overview` |
+| `/overview` | `overview.tsx` | HeroSection, QuickActions, KpiGrid, AnalyticsChart, RecentActivity |
+| `/transactions` | `transactions.tsx` | TransactionTable mit Suche/Filter |
+| `/atm` | `atm.tsx` | AtmCardPicker → AtmPinEntry → AtmKeypad, AtmHero, AtmRecent |
+| `/schedules` | `schedules.tsx` | Daueraufträge / Recurring Payments |
+| `/bank-cards` | `bank-cards.tsx` | Karten ausstellen, PIN setzen, löschen |
+
+Das Root-Layout (`__root.tsx`) umschließt alle Routen mit:
+- **AppShell** (Mantine): Sidebar + Hauptbereich
+- **TopBar**: Bank-Name, Standort-Label, Schließen-Button
+- **ActionModal**: gemeinsames Deposit/Withdraw/Transfer-Modal
+- **Toast**: globale Benachrichtigungen
+
+Die Navigation im ATM-Modus erfolgt ausschließlich über die `/atm`-Route; Sidebar und Bank-spezifische Routen werden ausgeblendet.
+
+---
+
+## 7. Theming-System
 
 ### CSS Custom Properties
 
-Die UI verwendet ausschließlich `--rb-*` CSS-Variablen:
+Das Theming basiert vollständig auf CSS Custom Properties (`--rb-*`), die auf `document.documentElement` gesetzt werden.
 
 | Variable | Beschreibung |
 |---|---|
-| `--rb-bg` | Haupthintergrundfarbe |
+| `--rb-bg` | Haupthintergrund |
 | `--rb-bg-2` | Sekundärer Hintergrund |
 | `--rb-surface` | Oberflächen-Overlay |
+| `--rb-surface-2` | Zweite Oberflächenebene |
 | `--rb-card` | Karten-Hintergrund |
-| `--rb-border` | Rahmenfarben |
-| `--rb-text` | Haupttextfarbe |
+| `--rb-border` | Rahmenfarbe |
+| `--rb-text` | Primäre Textfarbe |
 | `--rb-text-muted` | Abgeschwächter Text |
-| `--rb-accent` | Akzentfarbe (Eingang) |
+| `--rb-text-soft` | Weicher Text (Metadaten) |
+| `--rb-accent` | Akzentfarbe (Eingang / Primär) |
 | `--rb-accent-2` | Sekundärer Akzent |
+| `--rb-accent-contrast` | Textfarbe auf Akzent-Hintergrund |
 | `--rb-glow` | Glow-Effekt-Farbe |
-| `--rb-danger` | Fehler/Ausgang-Farbe |
-| `--rb-flow-out` | Ring-Diagramm Ausgang |
+| `--rb-danger` | Fehler / Ausgang |
+| `--rb-warning` | Warnung |
+| `--rb-flow-out` | Ausgangs-Indikator |
 
-### Theme-Anwendung
+### Theme-API (`lib/theme.ts`)
 
-```js
-function applyTheme(theme) {
-    const resolved = themeFromPayload(theme);
-    // Alle --rb-* Properties auf document.documentElement setzen
-    Object.entries(map).forEach(([key, value]) => {
-        document.documentElement.style.setProperty(key, value);
-    });
+```ts
+// Default-Theme (FLEECA)
+export const DEFAULT_THEME: BankTheme = { ... };
+
+// Deep-Merge eines eingehenden Themes mit dem Basis-Theme
+export function mergeTheme(base: BankTheme, incoming: Partial<BankTheme>): BankTheme;
+
+// Wendet ein Theme als CSS Custom Properties an
+export function applyThemeCssVars(theme: BankTheme): void;
+```
+
+### Konfiguration per Ped/ATM (`config.lua`)
+
+Jeder Bank-Ped und jeder ATM kann ein eigenes Theme erhalten:
+
+```lua
+Config.peds = {
+    {
+        coords = vector4(...),
+        model  = 's_m_m_bank_01',
+        theme  = {
+            key    = 'PACIFIC',
+            name   = 'PACIFIC STANDARD',
+            colors = { accent = '#f59e0b' }
+        }
+    }
 }
 ```
 
-Themes werden bei `setVisible` angewendet. Pro ATM/Ped können unterschiedliche Themes konfiguriert werden.
+Beim Öffnen der UI wird das Theme im `setVisible`-Payload mitgeschickt; `mergeTheme` + `applyThemeCssVars` werden im `useNuiMessage`-Hook aufgerufen.
 
 ---
 
-## Lokalisierung in der UI
+## 8. Hooks
 
-```js
-function t(key, fallback) {
-    const value = state.locale && state.locale[key];
-    return typeof value === 'string' && value.length > 0 
-        ? value 
-        : (fallback || FALLBACK_STRINGS[key] || key);
-}
-```
+### `useNuiMessage()`
 
-Dreistufiger Fallback: Locale-Map → `FALLBACK_STRINGS`-Konstante → Schlüssel selbst
+Registriert `window.addEventListener('message', ...)` und verarbeitet alle eingehenden Server-Nachrichten:
 
-`FALLBACK_STRINGS` enthält deutsche Standardtexte als letzten Fallback.
-
----
-
-## Hilfsfunktionen
-
-| Funktion | Beschreibung |
+| Action | Verhalten |
 |---|---|
-| `formatMoney(value)` | `Intl.NumberFormat` mit `state.currency` |
-| `formatDate(unix)` | `de-DE` Locale: `DD.MM.YY HH:mm` |
-| `relativeTime(unix)` | z.B. "Vor 3 Minuten", "Vor 1 Tag" |
-| `escapeHtml(value)` | XSS-Schutz für alle Nutzereingaben |
-| `accountMask(account)` | `"POLI •••• POLI"` – erste/letzte 4 Zeichen |
-| `normalizeAccounts(accounts)` | Typsichere Normalisierung von `amount`, `frozen`, `transactions` |
-| `metricsForAccount(account)` | Berechnet `{ inflow, outflow }` |
-| `chartBuckets(account)` | Letzte 6 Transaktionen als Balken-Daten |
+| `setVisible` | Setzt Store-State (visible, atm, accounts, theme, …); appliziert CSS-Theme |
+| `setLoading` | Setzt `loading` im Store |
+| `updateLocale` | Aktualisiert `locale` + `currency` im Store |
+| `notify` | Ruft `showToast(message)` auf |
+
+```ts
+// Nutzung im RootLayout:
+useNuiMessage();
+```
+
+### `useAccounts()`
+
+TanStack Query Wrapper für die Account-Liste:
+
+```ts
+const { data: accounts } = useAccounts();
+// Query-Key: ['banking', 'accounts']
+// Daten werden nach jedem erfolgreichen Callback-Response aktualisiert
+```
+
+### `useLocale()`
+
+Gibt einen `t(key, fallback?)`-Helper zurück:
+
+```ts
+const { t } = useLocale();
+// t('deposit')          → "Einzahlen" (aus locale map)
+// t('unknown_key', '-') → "-" (fallback)
+```
+
+Dreistufiger Fallback: `locale[key]` → `fallback` → `key` selbst.
 
 ---
 
-## XSS-Schutz
+## 9. Komponenten-Übersicht
 
-Alle User-Daten werden durch `escapeHtml()` vor der HTML-Injection geschützt:
-```js
-function escapeHtml(value) {
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-```
+### RootLayout (`routes/__root.tsx`)
+AppShell-Wrapper mit Sidebar, TopBar, ActionModal und globalem Toast. Enthält `useNuiMessage()`.
+
+### Sidebar (`components/Sidebar/`)
+Nur im Bank-Modus sichtbar. Zeigt:
+- Bank-Name + Subtitle (aus Theme)
+- Gesamtsaldo aller Konten + Bargeld
+- Liste aller Konten als klickbare Cards (inkl. Typ, Saldo, Status)
+
+### TopBar (`components/TopBar.tsx`)
+Header-Zeile mit Bank-Name, Standort-Label (`theme.contextLabel + theme.location`) und Schließen-Button (sendet `closeInterface`).
+
+### ActionModal (`components/ActionModal.tsx`)
+Gemeinsames Mantine-Modal für Deposit / Withdraw / Transfer. Liest `modal`-State aus Store; sendet `postNui` und aktualisiert Account-Query.
+
+### Overview-Komponenten (`components/Overview/`)
+
+| Komponente | Beschreibung |
+|---|---|
+| `HeroSection` | Kontoname, maskierte ID, Saldo, letzter Buchungszeitpunkt |
+| `QuickActions` | Deposit / Withdraw / Transfer Buttons |
+| `KpiGrid` | Gesamtsaldo, Bargeld, Kontoanzahl, letzte Buchung |
+| `AnalyticsChart` | Recharts-Balkendiagramm der letzten Transaktionen |
+| `RecentActivity` | 5 neueste Transaktionen als Row-Cards |
+
+### ATM-Komponenten (`components/ATM/`)
+
+| Komponente | Beschreibung |
+|---|---|
+| `AtmCardPicker` | Kartenauswahl (nur wenn `atmCardsOnly = true`) |
+| `AtmPinEntry` | PIN-Eingabe wenn `needsPin = true` |
+| `AtmKeypad` | Numpad für schnelle Betragsauswahl |
+| `AtmHero` | Kontostand-Anzeige im ATM-Modus |
+| `AtmRecent` | Letzte Transaktionen im ATM-Modus |
+
+### TransactionTable (`components/Transactions/`)
+Vollständiges Buchungsjournal (alle Konten zusammengeführt via `getAllTransactions`). Enthält Suchfeld (filtert nach Nachricht, Trans-ID, Empfänger, Konto-ID/-Name) und farblich hervorgehobene Eingangs-/Ausgangszeilen.
 
 ---
 
-## Event-Delegation
+## 10. Build-Prozess
 
-Statt direkter Event-Listener auf Elementen nutzt die UI Event-Delegation auf dem Root:
+### Voraussetzungen
 
-```js
-root.addEventListener('click', (e) => {
-    const action = e.target.closest('[data-action]')?.dataset.action;
-    // switch(action): select-account, open-modal, close-modal, ...
-});
+```bash
+cd web
+npm install
 ```
+
+### Produktions-Build
+
+```bash
+cd web && npm run build
+# oder aus dem Repo-Root:
+./build.sh
+```
+
+Output: `web/public/index.html`, `web/public/assets/*`
+
+### Build-Konfiguration (`vite.config.ts`)
+
+- `base: './'` – relative Pfade für FiveM NUI
+- Output: `web/public/`
+- TypeScript-Pfad-Aliase (`@/` → `src/`)
+
+> **Wichtig:** Generierte Dateien unter `web/public/` nicht manuell editieren. Änderungen immer in `web/src/` vornehmen und neu bauen.
 
 ---
 
-## Preset-Beträge ATM
+## 11. Lokalisierung in der UI
 
-```js
-const presetAmounts = [50, 100, 250, 500, 1000, 2500, 5000, 10000, 15000];
+Lokalisierungsstrings werden beim Ressourcen-Start via `updateLocale`-Message gesetzt und im Zustand-Store unter `locale` gespeichert. Der `useLocale()`-Hook stellt den `t(key, fallback?)`-Helper bereit.
+
+```ts
+const { t } = useLocale();
+
+<Button>{t('deposit')}</Button>
+<Text>{t('balance_label', 'Kontostand')}</Text>
 ```
 
-Klick auf Preset → Modal öffnen mit vorausgefülltem Betrag für Withdraw.
+Alle Locale-Keys sind in `locales/en.json` definiert. Neue UI-Texte müssen zuerst als Key in `en.json` (und allen anderen Locale-Dateien) angelegt werden.
+
+---
+
+## 12. Entwickler-Preview (Vite Browser Dev Mode)
+
+Im Browser-Dev-Mode (ohne FiveM-Laufzeitumgebung) wird `isNuiRuntime()` als `false` erkannt. Die App lädt dann Mock-Daten aus `lib/nui.ts` (Dev-Fixtures) statt echte NUI-Callbacks zu senden.
+
+```bash
+cd web
+npm run dev
+# → http://localhost:5173
+```
+
+Zum Testen verschiedener Themes und Mock-Accounts können die Dev-Fixtures in `lib/nui.ts` angepasst werden. Alle Routen sind über die Sidebar-Navigation erreichbar. Der ATM-Modus kann durch Setzen von `atm: true` im Mock-State simuliert werden.

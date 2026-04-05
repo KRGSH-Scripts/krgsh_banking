@@ -1,3 +1,10 @@
+---
+title: "Systemarchitektur"
+description: "Gesamtarchitektur von krgsh_banking: Schichtenmodell, Dateistruktur und technischer Überblick über alle Resource-Bestandteile."
+tags: ["fivem", "banking", "architecture", "lua"]
+order: 1
+---
+
 # Systemarchitektur – krgsh_banking
 
 ## Überblick

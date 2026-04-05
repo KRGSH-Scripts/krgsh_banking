@@ -1,3 +1,10 @@
+---
+title: "Geplante Zahlungen"
+description: "Daueraufträge, Lastschriften und Raten-Zahlungen: bank_payment_instructions Tabelle, Server-Worker, Ausführungslogik und Fehlerbehandlung."
+tags: ["fivem", "banking", "lua", "payments", "subscriptions", "api"]
+order: 12
+---
+
 # Geplante Zahlungen (Dauerauftrag, Lastschrift, Raten, Subscriptions)
 
 ## Überblick

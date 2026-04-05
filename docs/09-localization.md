@@ -1,3 +1,10 @@
+---
+title: "Lokalisierung"
+description: "22-sprachiges Lokalisierungssystem auf Basis von ox_lib: Locale-Dateien, Key-Struktur, NUI-Übertragung und Hinzufügen neuer Sprachen."
+tags: ["fivem", "banking", "localization", "i18n"]
+order: 9
+---
+
 # Lokalisierungssystem
 
 ## Überblick

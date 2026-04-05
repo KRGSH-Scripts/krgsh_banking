@@ -1,3 +1,10 @@
+---
+title: "Subscription-API"
+description: "Exports und Server-Events für wiederkehrende Abbuchungen: create_subscription, tabellenbasiertes Modell mit external_id und TriggerEvent-Payloads."
+tags: ["fivem", "banking", "lua", "subscriptions", "api", "events"]
+order: 14
+---
+
 # Subscription-API (Exports + Server-Events)
 
 Diese API richtet sich an **integrierende Resources** (und Coding Agents), die wiederkehrende Abbuchungen mit **konfigurierbaren Server-Events** benötigen. Sie ergänzt den Legacy-Export `create_subscription(debtor, creditor, amount, intervalSeconds, metadata)` um ein **tabellenbasiertes** Modell mit `external_id`, numerischer `subscription_id` und `TriggerEvent`-Payloads.

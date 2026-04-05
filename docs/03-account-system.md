@@ -1,3 +1,10 @@
+---
+title: "Kontosystem"
+description: "Domänenmodell der drei Kontotypen (Personal, Org, Shared), Datenstruktur, Autorisierungsregeln und Account-Lifecycle."
+tags: ["fivem", "banking", "lua", "accounts", "domain-model"]
+order: 3
+---
+
 # Kontosystem (Account System)
 
 ## Kontentypen
