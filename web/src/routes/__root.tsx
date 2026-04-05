@@ -1,13 +1,17 @@
 import {
   createRootRouteWithContext,
   Outlet,
+  useRouterState,
 } from '@tanstack/react-router';
 import type { QueryClient } from '@tanstack/react-query';
 import {
   AppShell,
   Box,
-  LoadingOverlay,
+  Loader,
   Notification,
+  Portal,
+  Stack,
+  Text,
   rem,
   Transition,
 } from '@mantine/core';
@@ -32,6 +36,32 @@ interface RouterContext {
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
 });
+
+function RoutedOutlet() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  return (
+    <Transition
+      key={pathname}
+      mounted
+      transition="fade"
+      duration={260}
+      timingFunction="cubic-bezier(0.4, 0, 0.2, 1)"
+    >
+      {(styles) => (
+        <Box
+          style={{
+            ...styles,
+            minHeight: '100%',
+            position: 'relative',
+          }}
+        >
+          <Outlet />
+        </Box>
+      )}
+    </Transition>
+  );
+}
 
 function RootLayout() {
   // Apply default theme CSS vars on first render
@@ -81,6 +111,7 @@ function RootLayout() {
             trans_search: 'Transaction Search...',
             frozen: 'Frozen',
             available: 'Active',
+            transaction_processing: 'Processing transaction…',
           },
           currency: 'USD',
         },
@@ -166,6 +197,7 @@ function RootLayout() {
           <Transition mounted transition="fade" duration={200}>
             {(styles) => (
               <Box
+                className="rb-glass-shell"
                 style={{
                   ...styles,
                   width: '100%',
@@ -176,16 +208,45 @@ function RootLayout() {
                   borderRadius: rem(20),
                   overflow: 'hidden',
                   background: 'var(--rb-bg)',
-                  boxShadow: '0 28px 70px rgba(0,0,0,0.6)',
                   border: '1px solid var(--rb-border)',
                 }}
               >
-                <LoadingOverlay
-                  visible={loading}
-                  zIndex={500}
-                  overlayProps={{ blur: 0, bg: 'rgba(0,0,0,0.65)' }}
-                  loaderProps={{ color: 'var(--rb-accent)', size: 'md' }}
-                />
+                {loading ? (
+                  <Portal>
+                    <Box
+                      style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 6000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        background: 'rgba(0, 0, 0, 0.48)',
+                      }}
+                    >
+                      <Stack align="center" gap={rem(14)}>
+                        <Loader
+                          size="xl"
+                          type="oval"
+                          color="var(--rb-accent)"
+                        />
+                        <Text
+                          size="sm"
+                          ta="center"
+                          maw={rem(280)}
+                          style={{ color: 'var(--rb-text-muted)' }}
+                        >
+                          {t(
+                            'transaction_processing',
+                            'Transaktion wird ausgefuehrt…',
+                          )}
+                        </Text>
+                      </Stack>
+                    </Box>
+                  </Portal>
+                ) : null}
 
                 <AppShell
                   header={{ height: rem(64) }}
@@ -197,6 +258,7 @@ function RootLayout() {
                   style={{ background: 'transparent', height: '100%' }}
                 >
                   <AppShell.Header
+                    className="rb-glass-surface"
                     style={{
                       background: 'var(--rb-bg-2)',
                       borderBottom: '1px solid var(--rb-border)',
@@ -212,6 +274,7 @@ function RootLayout() {
 
                   {!atm && (
                     <AppShell.Navbar
+                      className="rb-glass-surface"
                       style={{
                         background: 'var(--rb-bg-2)',
                         borderRight: '1px solid var(--rb-border)',
@@ -223,13 +286,14 @@ function RootLayout() {
                   )}
 
                   <AppShell.Main
+                    className="rb-glass-main"
                     style={{
                       background: 'var(--rb-bg)',
                       overflowY: 'auto',
                       height: '100%',
                     }}
                   >
-                    <Outlet />
+                    <RoutedOutlet />
                   </AppShell.Main>
                 </AppShell>
 

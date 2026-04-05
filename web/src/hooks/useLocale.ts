@@ -83,6 +83,7 @@ const FALLBACK: Record<string, string> = {
   create_account_failed: 'Konto konnte nicht angelegt werden.',
   create_account_rate_limit: 'Bitte kurz warten, bevor du ein weiteres Konto anlegst.',
   change_account_display_name: 'Anzeigename',
+  transaction_processing: 'Transaktion wird ausgefuehrt…',
 };
 
 export function useLocale() {

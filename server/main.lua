@@ -301,6 +301,7 @@ lib.callback.register('krgsh_banking:server:deposit', function(source, data)
         local Player2 = getPlayerData(source, data.fromAccount)
         Player2 = Player2 and GetCharacterName(Player2) or data.fromAccount
         handleTransaction(data.fromAccount, locale("personal_acc") .. data.fromAccount, amount, data.comment, name, Player2, "deposit")
+        Notify(source, { title = locale("bank_name"), description = locale("notify_deposit_cash", tostring(amount)), type = "success" })
         local bankData = getBankData(source)
         return bankData
     else
@@ -347,6 +348,7 @@ lib.callback.register('krgsh_banking:server:withdraw', function(source, data)
         Player2 = Player2 and GetCharacterName(Player2) or data.fromAccount
         AddMoney(Player, amount, 'cash', data.comment)
         handleTransaction(data.fromAccount,locale("personal_acc") .. data.fromAccount, amount, data.comment, Player2, name, "withdraw")
+        Notify(source, { title = locale("bank_name"), description = locale("notify_withdraw_cash", tostring(amount)), type = "success" })
         local bankData = getBankData(source)
         return bankData
     else
