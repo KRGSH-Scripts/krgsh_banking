@@ -19,6 +19,7 @@ export const Route = createFileRoute('/overview')({
 function OverviewPage() {
   const { data: accounts = [] } = useAccounts();
   const selectedAccountId = useBankingStore((s) => s.selectedAccountId);
+  const atm = useBankingStore((s) => s.atm);
   const selectedAccount =
     accounts.find((a) => a.id === selectedAccountId) ?? accounts[0] ?? null;
   const { t } = useLocale();
@@ -31,6 +32,7 @@ function OverviewPage() {
         value="overview"
         onChange={(v) => {
           if (v === 'transactions') void navigate({ to: '/transactions' });
+          if (v === 'schedules') void navigate({ to: '/schedules' });
         }}
         mb={rem(20)}
         styles={{
@@ -47,6 +49,7 @@ function OverviewPage() {
         <Tabs.List>
           <Tabs.Tab value="overview">{t('dashboard', 'Kontouebersicht')}</Tabs.Tab>
           <Tabs.Tab value="transactions">{t('transactionLog', 'Buchungen')}</Tabs.Tab>
+          {!atm ? <Tabs.Tab value="schedules">{t('pi_nav', 'Zahlungsplaene')}</Tabs.Tab> : null}
         </Tabs.List>
       </Tabs>
 

@@ -152,6 +152,14 @@ end)
 
 RegisterCommand('closeBankUI', function() nuiHandler(false) end, false)
 
+RegisterNetEvent('krgsh_banking:client:pendingMandate', function()
+    lib.notify({
+        title = locale('bank_name'),
+        description = locale('pi_pending_mandate'),
+        type = 'inform',
+    })
+end)
+
 local bankActions = {'deposit', 'withdraw', 'transfer'}
 local atmTargetModels = {}
 CreateThread(function ()
@@ -166,6 +174,23 @@ CreateThread(function ()
             displayName = type(data) == 'table' and data.displayName or nil
         })
         cb(payload or false)
+    end)
+    RegisterNUICallback('listPaymentInstructions', function(data, cb)
+        local atm = type(data) == 'table' and data.atm == true
+        local list = lib.callback.await('krgsh_banking:server:listPaymentInstructions', false, { atm = atm })
+        cb(list or {})
+    end)
+    RegisterNUICallback('createStandingOrder', function(data, cb)
+        local payload = lib.callback.await('krgsh_banking:server:createStandingOrder', false, type(data) == 'table' and data or {})
+        cb(payload or { success = false })
+    end)
+    RegisterNUICallback('updatePaymentInstruction', function(data, cb)
+        local payload = lib.callback.await('krgsh_banking:server:updatePaymentInstruction', false, type(data) == 'table' and data or {})
+        cb(payload or { success = false })
+    end)
+    RegisterNUICallback('respondMandate', function(data, cb)
+        local payload = lib.callback.await('krgsh_banking:server:respondMandate', false, type(data) == 'table' and data or {})
+        cb(payload or { success = false })
     end)
     local addedModels = {}
     for i = 1, #Config.atms do

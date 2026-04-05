@@ -63,6 +63,19 @@ function GetPlayerObject(source)
     end
 end
 
+--- Resolve an online player's server id from banking id (citizenid / ESX identifier).
+function GetSourceFromBankingId(identifier)
+    if not identifier or type(identifier) ~= 'string' then return nil end
+    local P = GetPlayerObjectFromID(identifier)
+    if not P then return nil end
+    if Framework == 'qb' or Framework == 'qbx' then
+        return P.PlayerData.source
+    elseif Framework == 'esx' then
+        return P.source
+    end
+    return nil
+end
+
 function GetPlayerObjectFromID(identifier)
     if Framework == 'qb' then
         identifier = identifier:upper()

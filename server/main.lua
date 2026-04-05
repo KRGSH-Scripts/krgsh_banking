@@ -283,7 +283,75 @@ local function getPlayerData(source, id)
     return Player
 end
 
-lib.callback.register('krgsh_banking:server:deposit', function(source, data)
+--- Server-side transfer (no `source` required). Optional `opts.debtorPlayer` forces the debitor for personal accounts (NUI must pass the caller).
+---@return boolean ok
+---@return string? err insufficient_funds, creditor_offline, debtor_offline_personal, invalid_amount
+local function executeAccountTransfer(fromAccount, stateid, amount, comment, opts)
+    opts = opts or {}
+    amount = math.floor(tonumber(amount) or 0)
+    if amount < 1 then return false, 'invalid_amount' end
+    if not comment or comment == '' then
+        comment = locale('pi_default_comment')
+    else
+        comment = sanitizeMessage(comment)
+    end
+
+    if cachedAccounts[fromAccount] then
+        if cachedAccounts[stateid] then
+            if not RemoveAccountMoney(fromAccount, amount) then
+                return false, 'insufficient_funds'
+            end
+            AddAccountMoney(stateid, amount)
+            local title = ('%s / %s'):format(cachedAccounts[fromAccount].name, fromAccount)
+            local transaction = handleTransaction(fromAccount, title, amount, comment, cachedAccounts[fromAccount].name, cachedAccounts[stateid].name, 'withdraw')
+            handleTransaction(stateid, title, amount, comment, cachedAccounts[fromAccount].name, cachedAccounts[stateid].name, 'deposit', transaction.trans_id)
+            return true
+        end
+        local Player2 = getPlayerData(false, stateid)
+        if not Player2 then
+            return false, 'creditor_offline'
+        end
+        if not RemoveAccountMoney(fromAccount, amount) then
+            return false, 'insufficient_funds'
+        end
+        AddMoney(Player2, amount, 'bank', comment)
+        local plyName = GetCharacterName(Player2)
+        local title = ('%s / %s'):format(cachedAccounts[fromAccount].name, fromAccount)
+        local transaction = handleTransaction(fromAccount, title, amount, comment, cachedAccounts[fromAccount].name, plyName, 'withdraw')
+        handleTransaction(stateid, title, amount, comment, cachedAccounts[fromAccount].name, plyName, 'deposit', transaction.trans_id)
+        return true
+    end
+
+    local Debtor = opts.debtorPlayer or GetPlayerObjectFromID(fromAccount)
+    if not Debtor then
+        return false, 'debtor_offline_personal'
+    end
+    local name = GetCharacterName(Debtor)
+    local funds = GetFunds(Debtor)
+    if cachedAccounts[stateid] then
+        if funds.bank < amount or not RemoveMoney(Debtor, amount, 'bank', comment) then
+            return false, 'insufficient_funds'
+        end
+        AddAccountMoney(stateid, amount)
+        local transaction = handleTransaction(fromAccount, locale("personal_acc") .. fromAccount, amount, comment, name, cachedAccounts[stateid].name, "withdraw")
+        handleTransaction(stateid, locale("personal_acc") .. fromAccount, amount, comment, name, cachedAccounts[stateid].name, "deposit", transaction.trans_id)
+        return true
+    end
+    local Player2 = getPlayerData(false, stateid)
+    if not Player2 then
+        return false, 'creditor_offline'
+    end
+    if funds.bank < amount or not RemoveMoney(Debtor, amount, 'bank', comment) then
+        return false, 'insufficient_funds'
+    end
+    local name2 = GetCharacterName(Player2)
+    AddMoney(Player2, amount, 'bank', comment)
+    local transaction = handleTransaction(fromAccount, locale("personal_acc") .. fromAccount, amount, comment, name, name2, "withdraw")
+    handleTransaction(stateid, locale("personal_acc") .. fromAccount, amount, comment, name, name2, "deposit", transaction.trans_id)
+    return true
+end
+
+lib.callback.register("krgsh_banking:server:deposit", function(source, data)
     local Player = GetPlayerObject(source)
     local amount = tonumber(data.amount)
     if not amount or amount < 1 then
@@ -291,7 +359,7 @@ lib.callback.register('krgsh_banking:server:deposit', function(source, data)
         return false
     end
     local name = GetCharacterName(Player)
-    if not data.comment or data.comment == "" then data.comment = locale("comp_transaction", name, "deposited", amount) else sanitizeMessage(data.comment) end
+    if not data.comment or data.comment == "" then data.comment = locale("comp_transaction", name, "deposited", amount) else data.comment = sanitizeMessage(data.comment) end
     if RemoveMoney(Player, amount, 'cash', data.comment) then
         if cachedAccounts[data.fromAccount] then
             AddAccountMoney(data.fromAccount, amount)
@@ -335,7 +403,7 @@ lib.callback.register('krgsh_banking:server:withdraw', function(source, data)
     end
     local name = GetCharacterName(Player)
     local funds = GetFunds(Player)
-    if not data.comment or data.comment == "" then data.comment = locale("comp_transaction", name, "withdrawed", amount) else sanitizeMessage(data.comment) end
+    if not data.comment or data.comment == "" then data.comment = locale("comp_transaction", name, "withdrawed", amount) else data.comment = sanitizeMessage(data.comment) end
 
     local canWithdraw
     if cachedAccounts[data.fromAccount] then
@@ -365,67 +433,21 @@ lib.callback.register('krgsh_banking:server:transfer', function(source, data)
         return false
     end
     local name = GetCharacterName(Player)
-    if not data.comment or data.comment == "" then data.comment = locale("comp_transaction", name, "transfered", amount) else sanitizeMessage(data.comment) end
-    if cachedAccounts[data.fromAccount] then
-        if cachedAccounts[data.stateid] then
-            local canTransfer = RemoveAccountMoney(data.fromAccount, amount)
-            if canTransfer then
-                AddAccountMoney(data.stateid, amount)
-                local title = ("%s / %s"):format(cachedAccounts[data.fromAccount].name, data.fromAccount)
-                local transaction = handleTransaction(data.fromAccount, title, amount, data.comment, cachedAccounts[data.fromAccount].name, cachedAccounts[data.stateid].name, "withdraw")
-                handleTransaction(data.stateid, title, amount, data.comment, cachedAccounts[data.fromAccount].name, cachedAccounts[data.stateid].name, "deposit", transaction.trans_id)
-            else
-                TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("not_enough_money"))
-                return false
-            end
-        else
-            local Player2 = getPlayerData(source, data.stateid)
-            if not Player2 then
-                TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("fail_transfer"))
-                return false
-            end
-            local canTransfer = RemoveAccountMoney(data.fromAccount, amount)
-            if canTransfer then
-                AddMoney(Player2, amount, 'bank', data.comment)
-                local plyName = GetCharacterName(Player2)
-                local transaction = handleTransaction(data.fromAccount, ("%s / %s"):format(cachedAccounts[data.fromAccount].name, data.fromAccount), amount, data.comment, cachedAccounts[data.fromAccount].name, plyName, "withdraw")
-                handleTransaction(data.stateid, ("%s / %s"):format(cachedAccounts[data.fromAccount].name, data.fromAccount), amount, data.comment, cachedAccounts[data.fromAccount].name, plyName, "deposit", transaction.trans_id)
-            else
-                TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("not_enough_money"))
-                return false
-            end
-        end
-    else
-        local funds = GetFunds(Player)
-        if cachedAccounts[data.stateid] then
-            if funds.bank >= amount and RemoveMoney(Player, amount, 'bank', data.comment) then
-                AddAccountMoney(data.stateid, amount)
-                local transaction = handleTransaction(data.fromAccount, locale("personal_acc") .. data.fromAccount, amount, data.comment, name, cachedAccounts[data.stateid].name, "withdraw")
-                handleTransaction(data.stateid, locale("personal_acc") .. data.fromAccount, amount, data.comment, name, cachedAccounts[data.stateid].name, "deposit", transaction.trans_id)
-            else
-                TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("not_enough_money"))
-                return false
-            end
-        else
-            local Player2 = getPlayerData(source, data.stateid)
-            if not Player2 then
-                TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("fail_transfer"))
-                return false
-            end
-
-            if funds.bank >= amount and RemoveMoney(Player, amount, 'bank', data.comment) then
-                AddMoney(Player2, amount, 'bank', data.comment)
-                local name2 = GetCharacterName(Player2)
-                local transaction = handleTransaction(data.fromAccount, locale("personal_acc") .. data.fromAccount, amount, data.comment, name, name2, "withdraw")
-                handleTransaction(data.stateid, locale("personal_acc") .. data.fromAccount, amount, data.comment, name, name2, "deposit", transaction.trans_id)
-            else
-                TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("not_enough_money"))
-                return false
-            end
-        end
+    if not data.comment or data.comment == "" then data.comment = locale("comp_transaction", name, "transfered", amount) else data.comment = sanitizeMessage(data.comment) end
+    local opts = {}
+    if not cachedAccounts[data.fromAccount] then
+        opts.debtorPlayer = Player
     end
-    local bankData = getBankData(source)
-    return bankData
+    local ok, err = executeAccountTransfer(data.fromAccount, data.stateid, amount, data.comment, opts)
+    if not ok then
+        if err == 'insufficient_funds' then
+            TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("not_enough_money"))
+        else
+            TriggerClientEvent('krgsh_banking:client:sendNotification', source, locale("fail_transfer"))
+        end
+        return false
+    end
+    return getBankData(source)
 end)
 
 local function trimDisplayName(raw)
@@ -826,7 +848,8 @@ end
 
 local createTables = {
     { query = "CREATE TABLE IF NOT EXISTS `bank_accounts_new` (`id` varchar(50) NOT NULL, `amount` int(11) DEFAULT 0, `transactions` longtext DEFAULT '[]', `auth` longtext DEFAULT '[]', `isFrozen` int(11) DEFAULT 0, `creator` varchar(50) DEFAULT NULL, `display_label` varchar(100) DEFAULT NULL, PRIMARY KEY (`id`));", values = nil },
-    { query = "CREATE TABLE IF NOT EXISTS `player_transactions` (`id` varchar(50) NOT NULL, `isFrozen` int(11) DEFAULT 0, `transactions` longtext DEFAULT '[]', PRIMARY KEY (`id`));", values = nil }
+    { query = "CREATE TABLE IF NOT EXISTS `player_transactions` (`id` varchar(50) NOT NULL, `isFrozen` int(11) DEFAULT 0, `transactions` longtext DEFAULT '[]', PRIMARY KEY (`id`));", values = nil },
+    { query = "CREATE TABLE IF NOT EXISTS `bank_payment_instructions` (`id` varchar(64) NOT NULL, `kind` varchar(32) NOT NULL, `debtor_account_id` varchar(64) NOT NULL, `creditor_target` varchar(64) NOT NULL, `amount` int(11) NOT NULL DEFAULT 0, `interval_seconds` int(11) NOT NULL DEFAULT 0, `next_run_at` bigint NOT NULL, `status` varchar(32) NOT NULL, `metadata` longtext NOT NULL, `created_at` bigint NOT NULL, `updated_at` bigint NOT NULL, PRIMARY KEY (`id`), KEY `idx_pi_next_run` (`next_run_at`,`status`));", values = nil }
 }
 
 assert(MySQL.transaction.await(createTables), "Failed to create tables")
@@ -834,3 +857,15 @@ assert(MySQL.transaction.await(createTables), "Failed to create tables")
 pcall(function()
     MySQL.query.await('ALTER TABLE `bank_accounts_new` ADD COLUMN `display_label` varchar(100) DEFAULT NULL')
 end)
+
+--- Injected by `server/payment_instructions.lua` after load (same resource chunk).
+BankingDeps = {
+    executeAccountTransfer = executeAccountTransfer,
+    getBankData = getBankData,
+    cachedAccounts = cachedAccounts,
+    cachedPlayers = cachedPlayers,
+    getPlayerData = getPlayerData,
+    genTransactionID = genTransactionID,
+    sanitizeMessage = sanitizeMessage,
+    UpdatePlayerAccount = UpdatePlayerAccount,
+}
