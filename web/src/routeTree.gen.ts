@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TransactionsRouteImport } from './routes/transactions'
+import { Route as SchedulesRouteImport } from './routes/schedules'
 import { Route as OverviewRouteImport } from './routes/overview'
 import { Route as AtmRouteImport } from './routes/atm'
 import { Route as IndexRouteImport } from './routes/index'
@@ -17,6 +18,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const TransactionsRoute = TransactionsRouteImport.update({
   id: '/transactions',
   path: '/transactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SchedulesRoute = SchedulesRouteImport.update({
+  id: '/schedules',
+  path: '/schedules',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OverviewRoute = OverviewRouteImport.update({
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/atm': typeof AtmRoute
   '/overview': typeof OverviewRoute
+  '/schedules': typeof SchedulesRoute
   '/transactions': typeof TransactionsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/atm': typeof AtmRoute
   '/overview': typeof OverviewRoute
+  '/schedules': typeof SchedulesRoute
   '/transactions': typeof TransactionsRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/atm': typeof AtmRoute
   '/overview': typeof OverviewRoute
+  '/schedules': typeof SchedulesRoute
   '/transactions': typeof TransactionsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/atm' | '/overview' | '/transactions'
+  fullPaths: '/' | '/atm' | '/overview' | '/schedules' | '/transactions'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/atm' | '/overview' | '/transactions'
-  id: '__root__' | '/' | '/atm' | '/overview' | '/transactions'
+  to: '/' | '/atm' | '/overview' | '/schedules' | '/transactions'
+  id: '__root__' | '/' | '/atm' | '/overview' | '/schedules' | '/transactions'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AtmRoute: typeof AtmRoute
   OverviewRoute: typeof OverviewRoute
+  SchedulesRoute: typeof SchedulesRoute
   TransactionsRoute: typeof TransactionsRoute
 }
 
@@ -76,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/transactions'
       fullPath: '/transactions'
       preLoaderRoute: typeof TransactionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedules': {
+      id: '/schedules'
+      path: '/schedules'
+      fullPath: '/schedules'
+      preLoaderRoute: typeof SchedulesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/overview': {
@@ -106,6 +123,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AtmRoute: AtmRoute,
   OverviewRoute: OverviewRoute,
+  SchedulesRoute: SchedulesRoute,
   TransactionsRoute: TransactionsRoute,
 }
 export const routeTree = rootRouteImport
