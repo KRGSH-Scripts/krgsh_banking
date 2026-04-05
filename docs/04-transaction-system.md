@@ -1,3 +1,10 @@
+---
+title: "Buchungssystem"
+description: "Serverseitige Buchungslogik für Einzahlung, Abhebung und Überweisung: Validierung, Transaktionshistorie und NUI-Callback-Flow."
+tags: ["fivem", "banking", "lua", "transactions", "api"]
+order: 4
+---
+
 # Buchungssystem (Transaction System)
 
 ## Überblick

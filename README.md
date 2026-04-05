@@ -1,8 +1,14 @@
+---
+title: "krgsh_banking"
+description: "Vollständiges FiveM Banking-System für QBCore, QBX und ESX. Unterstützt Personal-, Job-, Gang- und Shared-Konten, Bankkarten mit PIN, geplante Zahlungen/Subscriptions und ein React/Vite-NUI mit Multi-Theme-Support."
+tags: ["fivem", "banking", "qbcore", "esx", "lua", "react", "typescript", "ox-lib", "ox-target", "oxmysql"]
+---
+
 # krgsh_banking
 
 ## Projektbeschreibung
 
-TBD
+`krgsh_banking` ist ein vollständiges FiveM-Banking-System (Fork von [Renewed-Banking](https://github.com/Renewed-Scripts/Renewed-Banking)) für **QBCore**, **QBX** und **ESX**. Es bietet Personal-, Job-, Gang- und Shared-Konten, Bankkarten mit PIN, ein geplantes Zahlungssystem (Dauerauftrag, Lastschrift, Subscription), eine React/Vite-NUI mit Multi-Theme-Support und eine umfangreiche Server-Export-API für Integration in andere Ressourcen.
 
 ---
 
@@ -109,21 +115,23 @@ Vollständige API-Referenz: [docs/10-exports-api.md](docs/10-exports-api.md)
 
 ## Technische Dokumentation
 
-| Dokument | Beschreibung |
-|---|---|
-| [docs/01-architecture.md](docs/01-architecture.md) | Gesamtarchitektur, Schichtenmodell, Dateistruktur |
-| [docs/02-framework-adapter.md](docs/02-framework-adapter.md) | Framework-Erkennung (QB/QBX/ESX), Adapter-Funktionen, Kompatibilitäts-Shims |
-| [docs/03-account-system.md](docs/03-account-system.md) | Kontentypen (Personal/Org/Shared), Datenmodell, Autorisierungslogik |
-| [docs/04-transaction-system.md](docs/04-transaction-system.md) | Buchungslogik: Deposit, Withdraw, Transfer, /givecash |
-| [docs/05-cache-system.md](docs/05-cache-system.md) | Server-seitiger In-Memory-Cache, Initialisierung, Invalidierung |
-| [docs/06-nui-ui.md](docs/06-nui-ui.md) | Frontend-Architektur, NUI-Message-Protokoll, Theming, Tabs, Komponenten |
-| [docs/07-ped-atm-interaction.md](docs/07-ped-atm-interaction.md) | ATMs, Bank-Peds, lib.points, ox_target, Blips, Öffnungsablauf |
-| [docs/08-account-management.md](docs/08-account-management.md) | Shared-Account-Menüs: Erstellen, Umbenennen, Löschen, Mitgliederverwaltung |
-| [docs/09-localization.md](docs/09-localization.md) | Locale-System, 22 Sprachen, Schlüssel-Referenz, NUI-Integration |
-| [docs/10-exports-api.md](docs/10-exports-api.md) | Vollständige Export-API, Net-Events, Callbacks |
-| [docs/11-database-schema.md](docs/11-database-schema.md) | Tabellenschema, JSON-Formate, SQL-Operationen, Migrations-Hinweise |
-| [docs/12-config.md](docs/12-config.md) | Vollständige Konfigurationsreferenz (config.lua) |
-| [docs/13-subscription-api.md](docs/13-subscription-api.md) | Subscription-API: Exports, `external_id`, Server-Events (`TriggerEvent`) |
+| # | Dokument | Beschreibung |
+|---|---|---|
+| 01 | [docs/01-architecture.md](docs/01-architecture.md) | Gesamtarchitektur, Schichtenmodell, Dateistruktur |
+| 02 | [docs/02-framework-adapter.md](docs/02-framework-adapter.md) | Framework-Erkennung (QB/QBX/ESX), Adapter-Funktionen, Kompatibilitäts-Shims |
+| 03 | [docs/03-account-system.md](docs/03-account-system.md) | Kontentypen (Personal/Org/Shared), Datenmodell, Autorisierungslogik |
+| 04 | [docs/04-transaction-system.md](docs/04-transaction-system.md) | Buchungslogik: Deposit, Withdraw, Transfer, /givecash |
+| 05 | [docs/05-cache-system.md](docs/05-cache-system.md) | Server-seitiger In-Memory-Cache, Initialisierung, Invalidierung |
+| 06 | [docs/06-nui-ui.md](docs/06-nui-ui.md) | React/Vite/TypeScript Frontend: Architektur, NUI-Protokoll, Theming, Routing, Zustand-State |
+| 07 | [docs/07-ped-atm-interaction.md](docs/07-ped-atm-interaction.md) | ATMs, Bank-Peds, lib.points, ox_target, Blips, Öffnungsablauf |
+| 08 | [docs/08-account-management.md](docs/08-account-management.md) | Shared-Account-Menüs: Erstellen, Umbenennen, Löschen, Mitgliederverwaltung |
+| 09 | [docs/09-localization.md](docs/09-localization.md) | Locale-System, 22 Sprachen, Schlüssel-Referenz, NUI-Integration |
+| 10 | [docs/10-exports-api.md](docs/10-exports-api.md) | Vollständige Export-API, Net-Events, Callbacks |
+| 11 | [docs/11-database-schema.md](docs/11-database-schema.md) | Tabellenschema, JSON-Formate, SQL-Operationen, Migrations-Hinweise |
+| 12 | [docs/11-recurring-payments.md](docs/11-recurring-payments.md) | Geplante Zahlungen: Dauerauftrag, Lastschrift, Raten, Subscription-Worker |
+| 13 | [docs/12-config.md](docs/12-config.md) | Vollständige Konfigurationsreferenz (config.lua) |
+| 14 | [docs/13-subscription-api.md](docs/13-subscription-api.md) | Subscription-API: Exports, `external_id`, Server-Events (`TriggerEvent`) |
+| 15 | [docs/14-bank-card-system.md](docs/14-bank-card-system.md) | Bankkarten-System: Inventory-Provider, PIN, ATM-Kartenfluss, Sicherheit |
 
 ---
 

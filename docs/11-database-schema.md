@@ -1,3 +1,10 @@
+---
+title: "Datenbankschema"
+description: "MySQL-Schema für bank_accounts_new und player_transactions: Tabellenstruktur, JSON-Felder, Auto-Migration und Indizes."
+tags: ["fivem", "banking", "sql", "database", "schema"]
+order: 11
+---
+
 # Datenbankschema
 
 ## Überblick

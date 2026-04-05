@@ -1,3 +1,10 @@
+---
+title: "Framework-Adapter"
+description: "Wie krgsh_banking QBCore, QBX und ESX abstrahiert: Adapter-Funktionen, Framework-Erkennung und Kompatibilitäts-Exports."
+tags: ["fivem", "banking", "lua", "qbcore", "esx", "framework"]
+order: 2
+---
+
 # Framework-Adapter-System
 
 ## Zweck

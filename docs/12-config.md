@@ -1,3 +1,10 @@
+---
+title: "Konfigurationsreferenz"
+description: "Vollständige Referenz aller config.lua Optionen: Framework, ATMs, Peds, Inventory, Karten, Währung und UI-Einstellungen."
+tags: ["fivem", "banking", "lua", "configuration"]
+order: 13
+---
+
 # Konfigurationsreferenz (`config.lua`)
 
 ## Überblick

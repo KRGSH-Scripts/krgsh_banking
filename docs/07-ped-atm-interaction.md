@@ -1,3 +1,10 @@
+---
+title: "Peds, ATMs & Client-Interaktion"
+description: "Client-seitige Interaktionspunkte: Bank-Peds, ATM-Modelle, ox_target-Integration, Blips und UI-Open/Close-Workflow."
+tags: ["fivem", "banking", "lua", "atm", "peds", "ox-target"]
+order: 7
+---
+
 # Peds, ATMs und Client-Interaktion
 
 ## Überblick

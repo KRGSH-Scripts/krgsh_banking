@@ -1,3 +1,10 @@
+---
+title: "Shared-Account-Verwaltung"
+description: "ox_lib Context-Menüs für Erstellen, Umbenennen, Löschen und Mitgliederverwaltung von Shared-Accounts."
+tags: ["fivem", "banking", "lua", "shared-accounts", "ox-lib"]
+order: 8
+---
+
 # Shared-Account-Verwaltungsmenüs
 
 ## Überblick

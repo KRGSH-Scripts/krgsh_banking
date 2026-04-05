@@ -1,3 +1,10 @@
+---
+title: "Server-Exports & API"
+description: "Öffentliche Lua-Exports für externe Resources: Kontostände, Buchungen, Konten erstellen/löschen und qb-management/esx_society Kompatibilität."
+tags: ["fivem", "banking", "lua", "api", "exports", "integration"]
+order: 10
+---
+
 # Server-Exports und öffentliche API
 
 ## Überblick
