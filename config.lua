@@ -7,7 +7,7 @@ Config = {
     paymentInstructionsTrustedResources = {},
     progressbar = 'circle', -- circle or rectangle (Anything other than circle will default to rectangle)
     currency = 'USD', -- USD, EUR, GBP ect.....
-    --- Bank cards (shared accounts): item-based access + optional PIN
+    --- Bank cards (personal + shared accounts): item-based access + optional PIN
     inventoryProvider = 'jaksam_inventory', -- 'ox_inventory' | 'qb_inventory' | 'jaksam_inventory'
     --- qb-inventory resource folder is often `qb-inventory` (hyphen); override if yours differs
     ---inventoryResource = 'qb-inventory',
@@ -19,7 +19,7 @@ Config = {
     bankCardPinSessionSeconds = 600,
     --- Used with PIN hashing; set convar `krgsh_banking:card_pin_secret` on production servers
     bankCardPinSecret = 'change_me',
-    --- When true, ATMs only list shared accounts reachable via a physical bank_card item (no personal/job at ATM).
+    --- When true, ATMs only list accounts reachable via a physical bank_card item (personal + shared; no job/gang at ATM).
     atmCardsOnly = true,
     requireZeroBalanceToClose = true,
     -- UI theming / bank branding

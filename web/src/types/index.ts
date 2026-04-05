@@ -29,6 +29,20 @@ export interface Account {
   creator?: string | null;
   /** Physical bank card used at ATM (shared accounts, `atmCardsOnly` mode). */
   bankCardId?: string;
+  /** Player may order a bank card for this account (personal or owned shared). */
+  canIssueCard?: boolean;
+}
+
+/** Row from `listBankCards` (inventory + registry). */
+export interface InventoryBankCardRow {
+  slot: string | number;
+  accountId: string;
+  cardId: string;
+  label: string;
+  accountName: string;
+  kind: 'personal' | 'shared';
+  hasPin: boolean;
+  bank: string;
 }
 
 /** One insertable bank card at the ATM (from server / inventory). */

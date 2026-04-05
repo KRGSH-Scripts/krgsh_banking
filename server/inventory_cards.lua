@@ -131,3 +131,86 @@ function AddBankCardItem(src, itemName, metadata)
     end)
     return ok, (not ok) and tostring(err) or nil
 end
+
+--- Merge into existing item metadata (bank card label / hasPin etc.).
+---@param src number
+---@param itemName string
+---@param slot any
+---@param patch table
+---@return boolean ok
+function PatchBankCardItemMetadata(src, itemName, slot, patch)
+    itemName = itemName or Config.bankCardItem or 'bank_card'
+    patch = type(patch) == 'table' and patch or {}
+    local p = provider()
+    if p == 'qb_inventory' then
+        local res = qbResourceName()
+        if not started(res) then return false end
+        local Player = GetPlayerObject(src)
+        if not Player or not Player.PlayerData or not Player.PlayerData.items then return false end
+        local it = Player.PlayerData.items[slot]
+        if type(it) ~= 'table' or it.name ~= itemName or type(it.info) ~= 'table' then return false end
+        for k, v in pairs(patch) do
+            it.info[k] = v
+        end
+        local ok = pcall(function()
+            if Player.Functions and Player.Functions.SetInventory then
+                Player.Functions.SetInventory(Player.PlayerData.items)
+            elseif exports[res] and exports[res].SetItemData then
+                exports[res]:SetItemData(src, itemName, slot, 'info', it.info)
+            end
+        end)
+        return ok
+    elseif p == 'jaksam_inventory' then
+        if not started('jaksam_inventory') then return false end
+        local ok = pcall(function()
+            if exports['jaksam_inventory'].setItemMetadata then
+                exports['jaksam_inventory']:setItemMetadata(src, slot, patch)
+            elseif exports['jaksam_inventory'].updateItemMetadata then
+                exports['jaksam_inventory']:updateItemMetadata(src, slot, patch)
+            end
+        end)
+        return ok
+    end
+    if not started('ox_inventory') then return false end
+    local ok = pcall(function()
+        exports.ox_inventory:SetMetadata(src, slot, patch)
+    end)
+    return ok
+end
+
+---@param src number
+---@param itemName string
+---@param slot any
+---@param count number|nil
+---@return boolean ok
+function RemoveBankCardFromSlot(src, itemName, slot, count)
+    itemName = itemName or Config.bankCardItem or 'bank_card'
+    count = tonumber(count) or 1
+    local p = provider()
+    if p == 'qb_inventory' then
+        local res = qbResourceName()
+        if not started(res) then return false end
+        local ok = pcall(function()
+            exports[res]:RemoveItem(src, itemName, count, slot)
+        end)
+        if ok then return true end
+        local Player = GetPlayerObject(src)
+        if Player and Player.Functions and Player.Functions.RemoveItem then
+            return Player.Functions.RemoveItem(itemName, count, slot) == true
+        end
+        return false
+    elseif p == 'jaksam_inventory' then
+        if not started('jaksam_inventory') then return false end
+        local ok = pcall(function()
+            if exports['jaksam_inventory'].removeItem then
+                exports['jaksam_inventory']:removeItem(src, itemName, count, slot)
+            end
+        end)
+        return ok
+    end
+    if not started('ox_inventory') then return false end
+    local ok = pcall(function()
+        exports.ox_inventory:RemoveItem(src, itemName, count, nil, slot)
+    end)
+    return ok
+end

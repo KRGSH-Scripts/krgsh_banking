@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SchedulesRouteImport } from './routes/schedules'
 import { Route as OverviewRouteImport } from './routes/overview'
+import { Route as BankCardsRouteImport } from './routes/bank-cards'
 import { Route as AtmRouteImport } from './routes/atm'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -30,6 +31,11 @@ const OverviewRoute = OverviewRouteImport.update({
   path: '/overview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BankCardsRoute = BankCardsRouteImport.update({
+  id: '/bank-cards',
+  path: '/bank-cards',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AtmRoute = AtmRouteImport.update({
   id: '/atm',
   path: '/atm',
@@ -44,6 +50,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/atm': typeof AtmRoute
+  '/bank-cards': typeof BankCardsRoute
   '/overview': typeof OverviewRoute
   '/schedules': typeof SchedulesRoute
   '/transactions': typeof TransactionsRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/atm': typeof AtmRoute
+  '/bank-cards': typeof BankCardsRoute
   '/overview': typeof OverviewRoute
   '/schedules': typeof SchedulesRoute
   '/transactions': typeof TransactionsRoute
@@ -59,21 +67,42 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/atm': typeof AtmRoute
+  '/bank-cards': typeof BankCardsRoute
   '/overview': typeof OverviewRoute
   '/schedules': typeof SchedulesRoute
   '/transactions': typeof TransactionsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/atm' | '/overview' | '/schedules' | '/transactions'
+  fullPaths:
+    | '/'
+    | '/atm'
+    | '/bank-cards'
+    | '/overview'
+    | '/schedules'
+    | '/transactions'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/atm' | '/overview' | '/schedules' | '/transactions'
-  id: '__root__' | '/' | '/atm' | '/overview' | '/schedules' | '/transactions'
+  to:
+    | '/'
+    | '/atm'
+    | '/bank-cards'
+    | '/overview'
+    | '/schedules'
+    | '/transactions'
+  id:
+    | '__root__'
+    | '/'
+    | '/atm'
+    | '/bank-cards'
+    | '/overview'
+    | '/schedules'
+    | '/transactions'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AtmRoute: typeof AtmRoute
+  BankCardsRoute: typeof BankCardsRoute
   OverviewRoute: typeof OverviewRoute
   SchedulesRoute: typeof SchedulesRoute
   TransactionsRoute: typeof TransactionsRoute
@@ -102,6 +131,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OverviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bank-cards': {
+      id: '/bank-cards'
+      path: '/bank-cards'
+      fullPath: '/bank-cards'
+      preLoaderRoute: typeof BankCardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/atm': {
       id: '/atm'
       path: '/atm'
@@ -122,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AtmRoute: AtmRoute,
+  BankCardsRoute: BankCardsRoute,
   OverviewRoute: OverviewRoute,
   SchedulesRoute: SchedulesRoute,
   TransactionsRoute: TransactionsRoute,

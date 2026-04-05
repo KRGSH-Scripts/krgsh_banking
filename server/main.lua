@@ -111,16 +111,34 @@ AddEventHandler('playerDropped', function()
     cardSessions[source] = nil
 end)
 
----@param acc table
+---@param list table|nil
 ---@param cardId string
-local function findRegisteredCard(acc, cardId)
-    local list = acc.cards
-    if type(list) ~= 'table' then return nil end
+local function findCardInList(list, cardId)
+    if type(list) ~= 'table' or type(cardId) ~= 'string' or cardId == '' then return nil end
     for i = 1, #list do
         local c = list[i]
         if type(c) == 'table' and c.id == cardId then return c end
     end
     return nil
+end
+
+---@param acc table
+---@param cardId string
+local function findRegisteredCard(acc, cardId)
+    return findCardInList(acc.cards, cardId)
+end
+
+local function findRegisteredPersonalCard(cid, cardId)
+    if not cachedPlayers[cid] then return nil end
+    return findCardInList(cachedPlayers[cid].cards, cardId)
+end
+
+local function persistPersonalCards(cid)
+    if not cachedPlayers[cid] then return end
+    MySQL.update('UPDATE player_transactions SET cards = ? WHERE id = ?', {
+        json.encode(cachedPlayers[cid].cards or {}),
+        cid,
+    })
 end
 
 local function inventoryCardIdsForAccount(src, accountId)
@@ -192,13 +210,35 @@ local function canUseSharedAtmWithCard(src, accountId, cardId)
     return true
 end
 
+--- Personal account at ATM (citizen id == accountId).
+local function canUsePersonalAtmWithCard(src, cid, cardId)
+    if type(cid) ~= 'string' or type(cardId) ~= 'string' or cardId == '' then return false end
+    local Player = GetPlayerObject(src)
+    if not Player or GetIdentifier(Player) ~= cid then return false end
+    if not cachedPlayers[cid] then UpdatePlayerAccount(cid) end
+    local crec = findRegisteredPersonalCard(cid, cardId)
+    if not crec then return false end
+    local phys = inventoryCardIdsForAccount(src, cid)
+    if not phys[cardId] then return false end
+    local pinH = crec.pinHash
+    if type(pinH) == 'string' and pinH ~= '' then
+        return isCardSessionValid(src, cid, cardId)
+    end
+    return true
+end
+
 local function validateAtmOrgBankingPayload(source, data)
     if data.atm ~= true or not atmCardsOnlyEnabled() then return true end
     local fromAccount = data.fromAccount
     if type(fromAccount) ~= 'string' then return false end
     local acc = cachedAccounts[fromAccount]
     if not acc then
-        return true
+        local Player = GetPlayerObject(source)
+        local cid = Player and GetIdentifier(Player) or nil
+        if not cid or fromAccount ~= cid then return false end
+        local cardId = data.bankCardId
+        if type(cardId) ~= 'string' or cardId == '' then return false end
+        return canUsePersonalAtmWithCard(source, cid, cardId)
     end
     if acc.creator then
         local cardId = data.bankCardId
@@ -208,12 +248,13 @@ local function validateAtmOrgBankingPayload(source, data)
     return false
 end
 
---- ATM init / refresh: card catalog + optional single unlocked shared account (bankCardId on entry for NUI).
+--- ATM init / refresh: card catalog + optional single unlocked account (bankCardId on entry for NUI).
 local function getAtmBankPayload(source, activeAccountId, activeCardId)
     local Player = GetPlayerObject(source)
     local bankData = { accounts = {}, atmCards = {} }
     if not Player then return bankData end
     local cid = GetIdentifier(Player)
+    if not cachedPlayers[cid] then UpdatePlayerAccount(cid) end
     local plen = personalIdLen(cid)
     local seen = {}
     local items = FindBankCardItems(source, Config.bankCardItem or 'bank_card')
@@ -222,10 +263,10 @@ local function getAtmBankPayload(source, activeAccountId, activeCardId)
         local aid = m.accountId
         local cidCard = m.cardId
         if type(aid) == 'string' and aid ~= '' and type(cidCard) == 'string' and cidCard ~= '' then
-            local acc = cachedAccounts[aid]
-            if acc and acc.creator and findRegisteredCard(acc, cidCard) then
-                local key = aid .. '\0' .. cidCard
-                if not seen[key] then
+            local key = aid .. '\0' .. cidCard
+            if not seen[key] then
+                local acc = cachedAccounts[aid]
+                if acc and acc.creator and findRegisteredCard(acc, cidCard) then
                     seen[key] = true
                     local crec = findRegisteredCard(acc, cidCard)
                     local pinH = crec and crec.pinHash
@@ -239,17 +280,48 @@ local function getAtmBankPayload(source, activeAccountId, activeCardId)
                         label = label,
                         needsPin = needsPin,
                     }
+                elseif aid == cid and findRegisteredPersonalCard(cid, cidCard) then
+                    seen[key] = true
+                    local crec = findRegisteredPersonalCard(cid, cidCard)
+                    local pinH = crec and crec.pinHash
+                    local needsPin = type(pinH) == 'string' and pinH ~= '' and not isCardSessionValid(source, cid, cidCard)
+                    local pname = GetCharacterName(Player)
+                    local label = type(m.label) == 'string' and m.label ~= '' and m.label
+                        or ('%s — %s'):format(pname or locale('personal'), cidCard:sub(1, 8))
+                    bankData.atmCards[#bankData.atmCards + 1] = {
+                        accountId = aid,
+                        cardId = cidCard,
+                        accountName = pname or locale('personal'),
+                        label = label,
+                        needsPin = needsPin,
+                    }
                 end
             end
         end
     end
-    if type(activeAccountId) == 'string' and type(activeCardId) == 'string'
-        and canUseSharedAtmWithCard(source, activeAccountId, activeCardId) then
-        local sAccount = cachedAccounts[activeAccountId]
-        if sAccount then
-            bankData.accounts[#bankData.accounts + 1] = cloneAccountForBankData(sAccount, cid, plen, {
+    if type(activeAccountId) == 'string' and type(activeCardId) == 'string' then
+        if canUseSharedAtmWithCard(source, activeAccountId, activeCardId) then
+            local sAccount = cachedAccounts[activeAccountId]
+            if sAccount then
+                bankData.accounts[#bankData.accounts + 1] = cloneAccountForBankData(sAccount, cid, plen, {
+                    bankCardId = activeCardId,
+                })
+            end
+        elseif activeAccountId == cid and canUsePersonalAtmWithCard(source, cid, activeCardId) then
+            if not cachedPlayers[cid] then UpdatePlayerAccount(cid) end
+            local funds = GetFunds(Player)
+            bankData.accounts[#bankData.accounts + 1] = {
+                id = cid,
+                type = locale('personal'),
+                name = GetCharacterName(Player),
+                frozen = cachedPlayers[cid].isFrozen,
+                amount = funds.bank,
+                cash = funds.cash,
+                transactions = cachedPlayers[cid].transactions,
+                accountNumber = cid,
                 bankCardId = activeCardId,
-            })
+                canIssueCard = true,
+            }
         end
     end
     return bankData
@@ -398,7 +470,8 @@ function UpdatePlayerAccount(cid)
             cachedPlayers[cid] = {
                 isFrozen = 0,
                 transactions = #account > 0 and json.decode(account[1].transactions) or {},
-                accounts = {}
+                accounts = {},
+                cards = #account > 0 and normalizeCardsFromDb(account[1].cards) or {},
             }
 
             if #shared >= 1 then
@@ -428,6 +501,7 @@ local function getBankData(source)
         cash = funds.cash,
         transactions = cachedPlayers[cid].transactions,
         accountNumber = cid,
+        canIssueCard = true,
     }
 
     local jobs = GetJobs(Player)
@@ -462,6 +536,9 @@ local function getBankData(source)
                 if needPin then
                     extra.needsBankCardPin = true
                     extra.bankCardId = cardId
+                end
+                if sAccount.creator == cid then
+                    extra.canIssueCard = true
                 end
                 bankData[#bankData+1] = cloneAccountForBankData(sAccount, cid, plen, extra)
             end
@@ -922,9 +999,16 @@ lib.callback.register('krgsh_banking:server:verifyBankCardPin', function(source,
     data = type(data) == 'table' and data or {}
     local accountId, cardId, pin = data.accountId, data.cardId, data.pin
     if type(accountId) ~= 'string' or type(cardId) ~= 'string' then return false end
+    local Player = GetPlayerObject(source)
+    local cid = Player and GetIdentifier(Player) or nil
     local acc = cachedAccounts[accountId]
-    if not acc then return false end
-    local crec = findRegisteredCard(acc, cardId)
+    local crec
+    if acc then
+        crec = findRegisteredCard(acc, cardId)
+    elseif cid and accountId == cid then
+        if not cachedPlayers[cid] then UpdatePlayerAccount(cid) end
+        crec = findRegisteredPersonalCard(cid, cardId)
+    end
     if not crec then return false end
     local phys = inventoryCardIdsForAccount(source, accountId)
     if not phys[cardId] then return false end
@@ -940,9 +1024,14 @@ lib.callback.register('krgsh_banking:server:issueBankCard', function(source, dat
     data = type(data) == 'table' and data or {}
     local accountId = data.accountId
     if type(accountId) ~= 'string' then return false end
-    local acc = cachedAccounts[accountId]
     local Player = GetPlayerObject(source)
-    if not Player or not acc or not acc.creator or acc.creator ~= GetIdentifier(Player) then
+    if not Player then return false end
+    local cid = GetIdentifier(Player)
+    local acc = cachedAccounts[accountId]
+    local isPersonal = (accountId == cid)
+    if isPersonal then
+        if not cachedPlayers[cid] then UpdatePlayerAccount(cid) end
+    elseif not acc or not acc.creator or acc.creator ~= cid then
         Notify(source, { title = locale("bank_name"), description = locale("bank_card_no_access"), type = "error" })
         return false
     end
@@ -972,31 +1061,241 @@ lib.callback.register('krgsh_banking:server:issueBankCard', function(source, dat
         end
     end
     local newId = genTransactionID()
-    acc.cards = acc.cards or {}
     local entry = { id = newId, pinHash = nil }
     if type(pin) == 'string' and pin ~= '' then
         entry.pinHash = hashBankPin(accountId, newId, pin)
     end
-    acc.cards[#acc.cards + 1] = entry
     local bankLabel = type(Config.bankCardInstitution) == 'string' and Config.bankCardInstitution ~= '' and Config.bankCardInstitution or locale('bank_name')
+    local displayName
+    if isPersonal then
+        cachedPlayers[cid].cards = cachedPlayers[cid].cards or {}
+        cachedPlayers[cid].cards[#cachedPlayers[cid].cards + 1] = entry
+        displayName = GetCharacterName(Player)
+    else
+        acc.cards = acc.cards or {}
+        acc.cards[#acc.cards + 1] = entry
+        displayName = acc.name
+    end
     local md = {
         accountId = accountId,
         cardId = newId,
-        accountName = acc.name,
+        accountName = displayName,
         bank = bankLabel,
         hasPin = entry.pinHash ~= nil,
-        label = ('%s — %s'):format(acc.name, bankLabel),
+        label = ('%s — %s'):format(displayName, bankLabel),
     }
     local ok, err = AddBankCardItem(targetSrc, Config.bankCardItem, md)
     if not ok then
-        table.remove(acc.cards)
+        if isPersonal then
+            table.remove(cachedPlayers[cid].cards)
+        else
+            table.remove(acc.cards)
+        end
         if fee > 0 then AddMoney(Player, fee, feeType, 'bank card refund') end
         Notify(source, { title = locale("bank_name"), description = locale("bank_card_item_fail") .. (type(err) == 'string' and (': ' .. err) or ''), type = "error" })
         return false
     end
-    persistAccountCards(accountId)
+    if isPersonal then
+        persistPersonalCards(cid)
+    else
+        persistAccountCards(accountId)
+    end
     Notify(source, { title = locale("bank_name"), description = locale("bank_card_issued"), type = "success" })
+    return getBankData(source)
+end)
+
+local function trimCardNickname(raw)
+    if type(raw) ~= 'string' then return nil end
+    local s = (raw:match('^%s*(.-)%s*$') or '')
+    if s == '' then return '' end
+    local n = utf8.len(s)
+    if n and n > 80 then
+        return utf8.sub(s, 1, 80)
+    end
+    if #s > 80 then return s:sub(1, 80) end
+    return s
+end
+
+local function findHeldBankCardRow(source, accountId, cardId, slot)
+    if slot == nil then return nil, nil end
+    local items = FindBankCardItems(source, Config.bankCardItem or 'bank_card')
+    for i = 1, #items do
+        local m = items[i].metadata or {}
+        if m.accountId == accountId and m.cardId == cardId and tostring(items[i].slot) == tostring(slot) then
+            return items[i], m
+        end
+    end
+    return nil, nil
+end
+
+local function getRegistryCardEntry(source, accountId, cardId)
+    local Player = GetPlayerObject(source)
+    if not Player then return nil end
+    local cid = GetIdentifier(Player)
+    if accountId == cid then
+        if not cachedPlayers[cid] then UpdatePlayerAccount(cid) end
+        return findRegisteredPersonalCard(cid, cardId)
+    end
+    local acc = cachedAccounts[accountId]
+    if acc and acc.creator then
+        return findRegisteredCard(acc, cardId)
+    end
+    return nil
+end
+
+local function canRevokeBankCardRegistry(source, accountId)
+    local Player = GetPlayerObject(source)
+    if not Player then return false end
+    local cid = GetIdentifier(Player)
+    if accountId == cid then return true end
+    local acc = cachedAccounts[accountId]
+    return acc and acc.creator == cid
+end
+
+local function removeRegistryCardById(source, accountId, cardId)
+    local Player = GetPlayerObject(source)
+    local cid = GetIdentifier(Player)
+    if accountId == cid then
+        if not cachedPlayers[cid] then UpdatePlayerAccount(cid) end
+        local list = cachedPlayers[cid].cards or {}
+        local na = {}
+        for i = 1, #list do
+            if list[i].id ~= cardId then na[#na + 1] = list[i] end
+        end
+        cachedPlayers[cid].cards = na
+        persistPersonalCards(cid)
+        return true
+    end
+    local acc = cachedAccounts[accountId]
+    if not acc then return false end
+    local list = acc.cards or {}
+    local na = {}
+    for i = 1, #list do
+        if list[i].id ~= cardId then na[#na + 1] = list[i] end
+    end
+    acc.cards = na
+    persistAccountCards(accountId)
     return true
+end
+
+lib.callback.register('krgsh_banking:server:listBankCards', function(source)
+    local Player = GetPlayerObject(source)
+    if not Player then return {} end
+    local cid = GetIdentifier(Player)
+    if not cachedPlayers[cid] then UpdatePlayerAccount(cid) end
+    local items = FindBankCardItems(source, Config.bankCardItem or 'bank_card')
+    local out = {}
+    for i = 1, #items do
+        local m = items[i].metadata or {}
+        local aid, cId = m.accountId, m.cardId
+        if type(aid) == 'string' and type(cId) == 'string' and aid ~= '' and cId ~= '' then
+            local reg = getRegistryCardEntry(source, aid, cId)
+            if reg then
+                local kind = (aid == cid) and 'personal' or 'shared'
+                local aname
+                if aid == cid then
+                    aname = GetCharacterName(Player)
+                else
+                    local acc = cachedAccounts[aid]
+                    aname = acc and acc.name or aid
+                end
+                local bankLabel = type(Config.bankCardInstitution) == 'string' and Config.bankCardInstitution ~= '' and Config.bankCardInstitution or locale('bank_name')
+                out[#out + 1] = {
+                    slot = items[i].slot,
+                    accountId = aid,
+                    cardId = cId,
+                    label = type(m.label) == 'string' and m.label or '',
+                    accountName = aname,
+                    kind = kind,
+                    hasPin = type(reg.pinHash) == 'string' and reg.pinHash ~= '',
+                    bank = type(m.bank) == 'string' and m.bank or bankLabel,
+                }
+            end
+        end
+    end
+    return out
+end)
+
+lib.callback.register('krgsh_banking:server:updateBankCard', function(source, data)
+    data = type(data) == 'table' and data or {}
+    local accountId, cardId, slot = data.accountId, data.cardId, data.slot
+    if type(accountId) ~= 'string' or type(cardId) ~= 'string' or slot == nil then
+        return { ok = false, error = 'invalid' }
+    end
+    local row, md = findHeldBankCardRow(source, accountId, cardId, slot)
+    if not row then
+        return { ok = false, error = 'not_found' }
+    end
+    local reg = getRegistryCardEntry(source, accountId, cardId)
+    if not reg then
+        return { ok = false, error = 'not_registered' }
+    end
+    local newPin = data.newPin
+    local clearPin = data.clearPin == true
+    if clearPin then
+        reg.pinHash = nil
+    elseif type(newPin) == 'string' and newPin ~= '' then
+        if #newPin < 4 then
+            return { ok = false, error = 'pin_short' }
+        end
+        reg.pinHash = hashBankPin(accountId, cardId, newPin)
+    end
+    local holder = GetPlayerObject(source)
+    local holderCid = holder and GetIdentifier(holder) or nil
+    if holderCid and accountId == holderCid then
+        persistPersonalCards(holderCid)
+    else
+        persistAccountCards(accountId)
+    end
+    local bankLabel = type(Config.bankCardInstitution) == 'string' and Config.bankCardInstitution ~= '' and Config.bankCardInstitution or locale('bank_name')
+    local patch = { hasPin = reg.pinHash ~= nil }
+    if data.nickname ~= nil then
+        local nn = trimCardNickname(data.nickname)
+        if nn == nil then
+            -- skip
+        elseif nn == '' then
+            local an = type(md.accountName) == 'string' and md.accountName or ''
+            patch.label = ('%s — %s'):format(an ~= '' and an or accountId, bankLabel)
+        else
+            patch.label = nn
+        end
+    end
+    local merged = {}
+    if type(md) == 'table' then
+        for k, v in pairs(md) do
+            merged[k] = v
+        end
+    end
+    for k, v in pairs(patch) do
+        merged[k] = v
+    end
+    PatchBankCardItemMetadata(source, Config.bankCardItem, slot, merged)
+    return { ok = true, bankData = getBankData(source) }
+end)
+
+lib.callback.register('krgsh_banking:server:revokeBankCard', function(source, data)
+    data = type(data) == 'table' and data or {}
+    local accountId, cardId, slot = data.accountId, data.cardId, data.slot
+    if type(accountId) ~= 'string' or type(cardId) ~= 'string' or slot == nil then
+        return { ok = false, error = 'invalid' }
+    end
+    if not canRevokeBankCardRegistry(source, accountId) then
+        return { ok = false, error = 'no_access' }
+    end
+    local row = findHeldBankCardRow(source, accountId, cardId, slot)
+    if not row then
+        return { ok = false, error = 'not_found' }
+    end
+    if not getRegistryCardEntry(source, accountId, cardId) then
+        return { ok = false, error = 'not_registered' }
+    end
+    if not RemoveBankCardFromSlot(source, Config.bankCardItem, slot, 1) then
+        Notify(source, { title = locale("bank_name"), description = locale("bank_card_revoke_item_fail"), type = "error" })
+        return { ok = false, error = 'remove_item' }
+    end
+    removeRegistryCardById(source, accountId, cardId)
+    Notify(source, { title = locale("bank_name"), description = locale("bank_card_revoked"), type = "success" })
+    return { ok = true, bankData = getBankData(source) }
 end)
 
 RegisterNetEvent("krgsh_banking:server:getPlayerAccounts", function()
@@ -1354,7 +1653,7 @@ end
 
 local createTables = {
     { query = "CREATE TABLE IF NOT EXISTS `bank_accounts_new` (`id` varchar(50) NOT NULL, `amount` int(11) DEFAULT 0, `transactions` longtext DEFAULT '[]', `auth` longtext DEFAULT '[]', `isFrozen` int(11) DEFAULT 0, `creator` varchar(50) DEFAULT NULL, `display_label` varchar(100) DEFAULT NULL, `cards` longtext DEFAULT '[]', PRIMARY KEY (`id`));", values = nil },
-    { query = "CREATE TABLE IF NOT EXISTS `player_transactions` (`id` varchar(50) NOT NULL, `isFrozen` int(11) DEFAULT 0, `transactions` longtext DEFAULT '[]', PRIMARY KEY (`id`));", values = nil },
+    { query = "CREATE TABLE IF NOT EXISTS `player_transactions` (`id` varchar(50) NOT NULL, `isFrozen` int(11) DEFAULT 0, `transactions` longtext DEFAULT '[]', `cards` longtext DEFAULT '[]', PRIMARY KEY (`id`));", values = nil },
     { query = "CREATE TABLE IF NOT EXISTS `bank_payment_instructions` (`id` varchar(64) NOT NULL, `kind` varchar(32) NOT NULL, `debtor_account_id` varchar(64) NOT NULL, `creditor_target` varchar(64) NOT NULL, `amount` int(11) NOT NULL DEFAULT 0, `interval_seconds` int(11) NOT NULL DEFAULT 0, `next_run_at` bigint NOT NULL, `status` varchar(32) NOT NULL, `metadata` longtext NOT NULL, `created_at` bigint NOT NULL, `updated_at` bigint NOT NULL, `subscription_internal_id` bigint unsigned DEFAULT NULL, `owner_resource` varchar(64) NOT NULL DEFAULT '', `external_id` varchar(128) NOT NULL DEFAULT '', PRIMARY KEY (`id`), UNIQUE KEY `uk_pi_subscription_internal_id` (`subscription_internal_id`), KEY `idx_pi_next_run` (`next_run_at`,`status`), KEY `idx_pi_owner_external` (`owner_resource`,`external_id`));", values = nil }
 }
 
@@ -1365,6 +1664,9 @@ pcall(function()
 end)
 pcall(function()
     MySQL.query.await('ALTER TABLE `bank_accounts_new` ADD COLUMN `cards` longtext DEFAULT \'[]\'')
+end)
+pcall(function()
+    MySQL.query.await('ALTER TABLE `player_transactions` ADD COLUMN `cards` longtext DEFAULT \'[]\'')
 end)
 pcall(function()
     MySQL.query.await('ALTER TABLE `bank_payment_instructions` ADD COLUMN `subscription_internal_id` bigint unsigned DEFAULT NULL')

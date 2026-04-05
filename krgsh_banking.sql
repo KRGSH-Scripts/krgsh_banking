@@ -14,5 +14,6 @@ CREATE TABLE IF NOT EXISTS `player_transactions` (
   `id` varchar(50) NOT NULL,
   `isFrozen` int(11) DEFAULT 0,
   `transactions` longtext DEFAULT '[]',
+  `cards` longtext DEFAULT '[]',
   PRIMARY KEY (`id`)
 );
