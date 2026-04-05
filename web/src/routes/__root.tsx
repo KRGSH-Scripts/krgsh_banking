@@ -6,7 +6,6 @@ import type { QueryClient } from '@tanstack/react-query';
 import {
   AppShell,
   Box,
-  Center,
   LoadingOverlay,
   Notification,
   rem,
@@ -132,98 +131,103 @@ function RootLayout() {
     await postNui('closeInterface');
   }
 
+  // FiveM NUI: Keine Vollbild-Layer im DOM, solange die Bank geschlossen ist — sonst
+  // kann CEF den kompletten Gamescreen überdecken/blockieren, selbst bei transparentem CSS.
   return (
-    <Box
-      style={{
-        position: 'fixed',
-        inset: 0,
-        display: 'grid',
-        placeItems: 'center',
-        padding: rem(24),
-        background: 'transparent',
-      }}
-    >
-      <Transition mounted={visible} transition="fade" duration={200}>
-        {(styles) => (
-          <Box
-            style={{
-              ...styles,
-              width: '100%',
-              height: '100%',
-              maxWidth: rem(1400),
-              maxHeight: rem(900),
-              position: 'relative',
-              borderRadius: rem(20),
-              overflow: 'hidden',
-              background: 'var(--rb-bg)',
-              boxShadow: '0 28px 70px rgba(0,0,0,0.6)',
-              border: '1px solid var(--rb-border)',
-            }}
-          >
-            <LoadingOverlay
-              visible={loading}
-              zIndex={500}
-              overlayProps={{ blur: 4, bg: 'rgba(0,0,0,0.7)' }}
-              loaderProps={{ color: 'var(--rb-accent)', size: 'md' }}
-            />
-
-            <AppShell
-              header={{ height: rem(64) }}
-              navbar={
-                !atm
-                  ? { width: rem(300), breakpoint: 'never' }
-                  : undefined
-              }
-              style={{ background: 'transparent', height: '100%' }}
-            >
-              <AppShell.Header
+    <>
+      {visible ? (
+        <Box
+          style={{
+            position: 'fixed',
+            inset: 0,
+            display: 'grid',
+            placeItems: 'center',
+            padding: rem(24),
+            background: 'transparent',
+            pointerEvents: 'auto',
+          }}
+        >
+          <Transition mounted transition="fade" duration={200}>
+            {(styles) => (
+              <Box
                 style={{
-                  background: 'var(--rb-bg-2)',
-                  borderBottom: '1px solid var(--rb-border)',
-                }}
-              >
-                <TopBar
-                  theme={theme}
-                  atm={atm}
-                  onClose={handleClose}
-                  t={t}
-                />
-              </AppShell.Header>
-
-              {!atm && (
-                <AppShell.Navbar
-                  style={{
-                    background: 'var(--rb-bg-2)',
-                    borderRight: '1px solid var(--rb-border)',
-                    overflowY: 'auto',
-                  }}
-                >
-                  <Sidebar
-                    accounts={accounts}
-                    selectedAccount={selectedAccount}
-                    t={t}
-                  />
-                </AppShell.Navbar>
-              )}
-
-              <AppShell.Main
-                style={{
-                  background: 'var(--rb-bg)',
-                  overflowY: 'auto',
+                  ...styles,
+                  width: '100%',
                   height: '100%',
+                  maxWidth: rem(1400),
+                  maxHeight: rem(900),
+                  position: 'relative',
+                  borderRadius: rem(20),
+                  overflow: 'hidden',
+                  background: 'var(--rb-bg)',
+                  boxShadow: '0 28px 70px rgba(0,0,0,0.6)',
+                  border: '1px solid var(--rb-border)',
                 }}
               >
-                <Outlet />
-              </AppShell.Main>
-            </AppShell>
+                <LoadingOverlay
+                  visible={loading}
+                  zIndex={500}
+                  overlayProps={{ blur: 4, bg: 'rgba(0,0,0,0.7)' }}
+                  loaderProps={{ color: 'var(--rb-accent)', size: 'md' }}
+                />
 
-            {/* Action Modal */}
-            <ActionModal t={t} />
-          </Box>
-        )}
-      </Transition>
+                <AppShell
+                  header={{ height: rem(64) }}
+                  navbar={
+                    !atm
+                      ? { width: rem(300), breakpoint: 'never' }
+                      : undefined
+                  }
+                  style={{ background: 'transparent', height: '100%' }}
+                >
+                  <AppShell.Header
+                    style={{
+                      background: 'var(--rb-bg-2)',
+                      borderBottom: '1px solid var(--rb-border)',
+                    }}
+                  >
+                    <TopBar
+                      theme={theme}
+                      atm={atm}
+                      onClose={handleClose}
+                      t={t}
+                    />
+                  </AppShell.Header>
 
-      {/* Toast notification */}
+                  {!atm && (
+                    <AppShell.Navbar
+                      style={{
+                        background: 'var(--rb-bg-2)',
+                        borderRight: '1px solid var(--rb-border)',
+                        overflowY: 'auto',
+                      }}
+                    >
+                      <Sidebar
+                        accounts={accounts}
+                        selectedAccount={selectedAccount}
+                        t={t}
+                      />
+                    </AppShell.Navbar>
+                  )}
+
+                  <AppShell.Main
+                    style={{
+                      background: 'var(--rb-bg)',
+                      overflowY: 'auto',
+                      height: '100%',
+                    }}
+                  >
+                    <Outlet />
+                  </AppShell.Main>
+                </AppShell>
+
+                <ActionModal t={t} />
+              </Box>
+            )}
+          </Transition>
+        </Box>
+      ) : null}
+
       <Transition mounted={!!toast} transition="slide-up" duration={250}>
         {(styles) => (
           <Box
@@ -235,6 +239,7 @@ function RootLayout() {
               transform: 'translateX(-50%)',
               zIndex: 600,
               minWidth: rem(320),
+              pointerEvents: 'auto',
             }}
           >
             <Notification
@@ -256,9 +261,6 @@ function RootLayout() {
           </Box>
         )}
       </Transition>
-
-      {/* Fallback center when not visible (FiveM transparent background) */}
-      {!visible && <Center style={{ display: 'none' }} />}
-    </Box>
+    </>
   );
 }
