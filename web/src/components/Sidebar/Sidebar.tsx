@@ -31,11 +31,22 @@ export default function Sidebar({ accounts, t }: SidebarProps) {
   const fmt = (v: number) => formatMoney(v, currency);
 
   return (
-    <Stack gap={0} style={{ height: '100%' }}>
+    <Stack
+      gap={0}
+      style={{
+        flex: 1,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
       {/* Header block */}
       <Box
         p={rem(20)}
-        style={{ borderBottom: '1px solid var(--rb-border)' }}
+        style={{
+          flexShrink: 0,
+          borderBottom: '1px solid var(--rb-border)',
+        }}
       >
         <Text size="xs" c="dimmed" tt="uppercase" fw={600} lts={1} mb={rem(4)}>
           {t('portfolio', 'Konten')}
@@ -68,10 +79,15 @@ export default function Sidebar({ accounts, t }: SidebarProps) {
         </Group>
       </Box>
 
-      <Divider color="var(--rb-divider)" />
+      <Divider color="var(--rb-divider)" style={{ flexShrink: 0 }} />
 
       {/* Account count */}
-      <Box px={rem(20)} pt={rem(18)} pb={rem(10)}>
+      <Box
+        px={rem(20)}
+        pt={rem(18)}
+        pb={rem(10)}
+        style={{ flexShrink: 0 }}
+      >
         <Group justify="space-between" wrap="nowrap">
           <Text size="xs" c="dimmed" tt="uppercase" fw={600} lts={1}>
             {t('accountCount', 'Konten')} ({accounts.length})
@@ -109,28 +125,38 @@ export default function Sidebar({ accounts, t }: SidebarProps) {
         t={t}
       />
 
-      {/* Account list */}
-      <Stack gap={rem(14)} px={rem(14)} pb={rem(16)} style={{ flex: 1, overflowY: 'auto' }}>
-        {accounts.length === 0 ? (
-          <Box p={rem(16)} ta="center">
-            <Text size="sm" style={{ color: 'var(--rb-text-muted)' }}>
-              {t('noAccounts', 'Keine Konten vorhanden')}
-            </Text>
-          </Box>
-        ) : (
-          accounts.map((account) => (
-            <AccountCard
-              key={account.id}
-              account={account}
-              selected={account.id === selectedAccountId}
-              onClick={() => setSelectedAccountId(account.id)}
-              t={t}
-              currency={currency}
-              locale={locale}
-            />
-          ))
-        )}
-      </Stack>
+      {/* Account list — scrollt innerhalb der Navbar (flex minHeight:0) */}
+      <Box
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        <Stack gap={rem(14)} px={rem(14)} pb={rem(16)}>
+          {accounts.length === 0 ? (
+            <Box p={rem(16)} ta="center">
+              <Text size="sm" style={{ color: 'var(--rb-text-muted)' }}>
+                {t('noAccounts', 'Keine Konten vorhanden')}
+              </Text>
+            </Box>
+          ) : (
+            accounts.map((account) => (
+              <AccountCard
+                key={account.id}
+                account={account}
+                selected={account.id === selectedAccountId}
+                onClick={() => setSelectedAccountId(account.id)}
+                t={t}
+                currency={currency}
+                locale={locale}
+              />
+            ))
+          )}
+        </Stack>
+      </Box>
     </Stack>
   );
 }

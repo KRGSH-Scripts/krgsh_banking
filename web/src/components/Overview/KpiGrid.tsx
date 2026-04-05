@@ -5,18 +5,30 @@ import {
   formatDate,
   sumAccountBalances,
   getCashBalance,
-  latestTransaction,
 } from '../../lib/formatters';
 import { useBankingStore } from '../../store/bankingStore';
 
 interface KpiGridProps {
   accounts: Account[];
+  selectedAccount: Account | null;
   t: (key: string, fallback?: string) => string;
 }
 
-export default function KpiGrid({ accounts, t }: KpiGridProps) {
+function latestTxForAccount(account: Account | null) {
+  if (!account?.transactions?.length) return undefined;
+  const sorted = [...account.transactions].sort(
+    (a, b) => (Number(b.time) || 0) - (Number(a.time) || 0),
+  );
+  return sorted[0];
+}
+
+export default function KpiGrid({
+  accounts,
+  selectedAccount,
+  t,
+}: KpiGridProps) {
   const currency = useBankingStore((s) => s.currency);
-  const latest = latestTransaction(accounts);
+  const latest = latestTxForAccount(selectedAccount);
   const fmt = (v: number) => formatMoney(v, currency);
 
   const stats = [
@@ -36,7 +48,7 @@ export default function KpiGrid({ accounts, t }: KpiGridProps) {
       meta: 'Freigeschaltete Konten',
     },
     {
-      label: t('date', 'Letzte Buchung'),
+      label: t('kpi_last_booking', 'Letzte Buchung'),
       value: latest ? formatDate(latest.time) : '-',
       meta: latest
         ? (latest.message || latest.title || 'Letzte Buchung')

@@ -4,7 +4,8 @@ export interface Transaction {
   trans_id: string;
   title: string;
   amount: number;
-  trans_type: 'deposit' | 'withdraw';
+  /** Server uses deposit/withdraw; other values possible via exports. */
+  trans_type: string;
   receiver: string;
   message: string;
   issuer: string;

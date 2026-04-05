@@ -9,7 +9,6 @@ import {
   Box,
   Loader,
   Notification,
-  Portal,
   Stack,
   Text,
   rem,
@@ -52,8 +51,9 @@ function RoutedOutlet() {
         <Box
           style={{
             ...styles,
-            minHeight: '100%',
             position: 'relative',
+            minHeight: 0,
+            height: '100%',
           }}
         >
           <Outlet />
@@ -197,55 +197,55 @@ function RootLayout() {
           <Transition mounted transition="fade" duration={200}>
             {(styles) => (
               <Box
-                className="rb-glass-shell"
                 style={{
                   ...styles,
-                  width: '100%',
-                  height: '100%',
+                  position: 'relative',
+                  boxSizing: 'border-box',
+                  width: `min(100%, ${rem(1400)})`,
+                  height: `min(100%, ${rem(900)})`,
                   maxWidth: rem(1400),
                   maxHeight: rem(900),
-                  position: 'relative',
                   borderRadius: rem(20),
                   overflow: 'hidden',
                   background: 'var(--rb-bg)',
+                  boxShadow: '0 28px 70px rgba(0,0,0,0.6)',
                   border: '1px solid var(--rb-border)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  minHeight: 0,
                 }}
               >
                 {loading ? (
-                  <Portal>
-                    <Box
-                      style={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: 6000,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backdropFilter: 'blur(8px)',
-                        WebkitBackdropFilter: 'blur(8px)',
-                        background: 'rgba(0, 0, 0, 0.48)',
-                      }}
-                    >
-                      <Stack align="center" gap={rem(14)}>
-                        <Loader
-                          size="xl"
-                          type="oval"
-                          color="var(--rb-accent)"
-                        />
-                        <Text
-                          size="sm"
-                          ta="center"
-                          maw={rem(280)}
-                          style={{ color: 'var(--rb-text-muted)' }}
-                        >
-                          {t(
-                            'transaction_processing',
-                            'Transaktion wird ausgefuehrt…',
-                          )}
-                        </Text>
-                      </Stack>
-                    </Box>
-                  </Portal>
+                  <Box
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      zIndex: 2200,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(0, 0, 0, 0.62)',
+                    }}
+                  >
+                    <Stack align="center" gap={rem(12)}>
+                      <Loader
+                        size="lg"
+                        type="oval"
+                        color="var(--rb-accent)"
+                      />
+                      <Text
+                        size="sm"
+                        ta="center"
+                        maw={rem(280)}
+                        style={{ color: 'var(--rb-text-muted)' }}
+                      >
+                        {t(
+                          'transaction_processing',
+                          'Transaktion wird ausgefuehrt…',
+                        )}
+                      </Text>
+                    </Stack>
+                  </Box>
                 ) : null}
 
                 <AppShell
@@ -255,13 +255,22 @@ function RootLayout() {
                       ? { width: rem(332), breakpoint: 'never' }
                       : undefined
                   }
-                  style={{ background: 'transparent', height: '100%' }}
+                  styles={{
+                    root: {
+                      flex: 1,
+                      minHeight: 0,
+                      background: 'transparent',
+                    },
+                    main: { minHeight: 0 },
+                    navbar: { minHeight: 0 },
+                  }}
+                  style={{ background: 'transparent', flex: 1, minHeight: 0 }}
                 >
                   <AppShell.Header
-                    className="rb-glass-surface"
                     style={{
                       background: 'var(--rb-bg-2)',
                       borderBottom: '1px solid var(--rb-border)',
+                      flexShrink: 0,
                     }}
                   >
                     <TopBar
@@ -274,11 +283,13 @@ function RootLayout() {
 
                   {!atm && (
                     <AppShell.Navbar
-                      className="rb-glass-surface"
                       style={{
                         background: 'var(--rb-bg-2)',
                         borderRight: '1px solid var(--rb-border)',
-                        overflowY: 'auto',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minHeight: 0,
+                        overflow: 'hidden',
                       }}
                     >
                       <Sidebar accounts={accounts} t={t} />
@@ -286,11 +297,12 @@ function RootLayout() {
                   )}
 
                   <AppShell.Main
-                    className="rb-glass-main"
                     style={{
                       background: 'var(--rb-bg)',
                       overflowY: 'auto',
-                      height: '100%',
+                      overflowX: 'hidden',
+                      minHeight: 0,
+                      flex: 1,
                     }}
                   >
                     <RoutedOutlet />
