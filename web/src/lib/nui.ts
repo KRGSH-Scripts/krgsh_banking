@@ -12,14 +12,24 @@ export function isNuiRuntime(): boolean {
   return getGlobalGetParentResourceName() !== undefined;
 }
 
-export const RESOURCE_NAME = getGlobalGetParentResourceName()?.() ?? 'krgsh_banking';
+/**
+ * Ordnername der Resource — pro Aufruf auflösen, damit der Host nicht beim
+ * ersten Modul-Load festliegt (sonst falsche URL → „callback existiert nicht“).
+ */
+export function getNuiResourceName(): string {
+  return getGlobalGetParentResourceName()?.() ?? 'krgsh_banking';
+}
+
+/** @deprecated Nutze getNuiResourceName() — kann beim Bundle-Start noch falsch sein. */
+export const RESOURCE_NAME = getNuiResourceName();
 
 export async function postNui<T = unknown>(
   action: string,
   payload?: Record<string, unknown>,
 ): Promise<T | false> {
   try {
-    const response = await fetch(`https://${RESOURCE_NAME}/${action}`, {
+    const host = getNuiResourceName();
+    const response = await fetch(`https://${host}/${action}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=UTF-8' },
       body: JSON.stringify(payload ?? {}),
