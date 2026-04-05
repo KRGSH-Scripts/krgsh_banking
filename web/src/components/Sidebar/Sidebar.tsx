@@ -5,18 +5,15 @@ import {
   formatMoney,
   sumAccountBalances,
   getCashBalance,
-  latestTransaction,
-  relativeTime,
 } from '../../lib/formatters';
 import AccountCard from './AccountCard';
 
 interface SidebarProps {
   accounts: Account[];
-  selectedAccount: Account | null;
   t: (key: string, fallback?: string) => string;
 }
 
-export default function Sidebar({ accounts, selectedAccount, t }: SidebarProps) {
+export default function Sidebar({ accounts, t }: SidebarProps) {
   const currency = useBankingStore((s) => s.currency);
   const locale = useBankingStore((s) => s.locale);
   const setSelectedAccountId = useBankingStore((s) => s.setSelectedAccountId);
@@ -24,7 +21,6 @@ export default function Sidebar({ accounts, selectedAccount, t }: SidebarProps) 
 
   const totalBalance = sumAccountBalances(accounts);
   const cashBalance = getCashBalance(accounts);
-  const latest = latestTransaction(accounts);
 
   const fmt = (v: number) => formatMoney(v, currency);
 
@@ -66,30 +62,10 @@ export default function Sidebar({ accounts, selectedAccount, t }: SidebarProps) 
         </Group>
       </Box>
 
-      {/* Selected account info */}
-      {selectedAccount && (
-        <Box
-          p={rem(16)}
-          style={{ borderBottom: '1px solid var(--rb-border)', background: 'var(--rb-surface)' }}
-        >
-          <Text size="xs" c="dimmed" tt="uppercase" fw={600} lts={1} mb={rem(4)}>
-            {t('selectedAccount', 'Aktives Konto')}
-          </Text>
-          <Text fw={600} size="sm" style={{ color: 'var(--rb-text)' }}>
-            {selectedAccount.name || selectedAccount.id}
-          </Text>
-          <Text size="xs" style={{ color: 'var(--rb-text-muted)' }}>
-            {latest
-              ? `Letzte Aktivität ${relativeTime(latest.time, locale)}`
-              : t('noTransactions', 'Keine Buchungen')}
-          </Text>
-        </Box>
-      )}
-
       <Divider color="var(--rb-divider)" />
 
       {/* Account count */}
-      <Box px={rem(20)} pt={rem(16)} pb={rem(8)}>
+      <Box px={rem(20)} pt={rem(18)} pb={rem(10)}>
         <Group justify="space-between">
           <Text size="xs" c="dimmed" tt="uppercase" fw={600} lts={1}>
             {t('accountCount', 'Konten')} ({accounts.length})
@@ -101,7 +77,7 @@ export default function Sidebar({ accounts, selectedAccount, t }: SidebarProps) 
       </Box>
 
       {/* Account list */}
-      <Stack gap={rem(8)} px={rem(12)} pb={rem(12)} style={{ flex: 1, overflowY: 'auto' }}>
+      <Stack gap={rem(14)} px={rem(14)} pb={rem(16)} style={{ flex: 1, overflowY: 'auto' }}>
         {accounts.length === 0 ? (
           <Box p={rem(16)} ta="center">
             <Text size="sm" style={{ color: 'var(--rb-text-muted)' }}>
