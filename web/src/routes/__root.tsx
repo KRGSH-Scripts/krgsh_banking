@@ -121,11 +121,8 @@ function RootLayout() {
 
   const { visible, loading, atm, toast, theme } = useBankingStore();
   const { data: accounts = [] } = useAccounts();
-  const selectedAccountId = useBankingStore((s) => s.selectedAccountId);
   const hideToast = useBankingStore((s) => s.hideToast);
   const { t } = useLocale();
-
-  const selectedAccount = accounts.find((a) => a.id === selectedAccountId) ?? accounts[0] ?? null;
 
   async function handleClose() {
     useBankingStore.getState().setVisible(false, false);
@@ -176,7 +173,7 @@ function RootLayout() {
                   header={{ height: rem(64) }}
                   navbar={
                     !atm
-                      ? { width: rem(300), breakpoint: 'never' }
+                      ? { width: rem(332), breakpoint: 'never' }
                       : undefined
                   }
                   style={{ background: 'transparent', height: '100%' }}
@@ -203,11 +200,7 @@ function RootLayout() {
                         overflowY: 'auto',
                       }}
                     >
-                      <Sidebar
-                        accounts={accounts}
-                        selectedAccount={selectedAccount}
-                        t={t}
-                      />
+                      <Sidebar accounts={accounts} t={t} />
                     </AppShell.Navbar>
                   )}
 
